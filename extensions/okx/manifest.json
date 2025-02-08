@@ -1,0 +1,144 @@
+{
+    "update_url": "https://clients2.google.com/service/update2/crx",
+    "author": "https://www.okx.com",
+    "background": {
+        "service_worker": "scripts/background/background.js"
+    },
+    "action": {
+        "default_icon": {
+            "16": "static/images/icon-16.png",
+            "19": "static/images/icon-19.png",
+            "32": "static/images/icon-32.png",
+            "38": "static/images/icon-38.png",
+            "64": "static/images/icon-64.png",
+            "128": "static/images/icon-128.png",
+            "512": "static/images/icon-512.png"
+        },
+        "default_title": "__MSG_wallet_intro_product_name__",
+        "default_popup": "popup.html"
+    },
+    "commands": {
+        "_execute_browser_action": {
+            "suggested_key": {
+                "windows": "Alt+Shift+O",
+                "mac": "Alt+Shift+O",
+                "chromeos": "Alt+Shift+O",
+                "linux": "Alt+Shift+O"
+            }
+        }
+    },
+    "content_scripts": [
+        {
+            "matches": [
+                "http://*/*",
+                "https://*/*"
+            ],
+            "js": [
+                "scripts/lib/disable-console.js",
+                "scripts/lib/globalthis.js",
+                "scripts/lib/contentscript.js"
+            ],
+            "run_at": "document_start",
+            "all_frames": true
+        },
+        {
+            "matches": [
+                "*://x.com/*",
+                "*://twitter.com/*"
+            ],
+            "js": [
+                "scripts/lib/blink.js",
+                "scripts/lib/amplitude-8.2.3-min.gz.js"
+            ],
+            "run_at": "document_end",
+            "all_frames": true
+        },
+        {
+            "matches": [
+                "*://connect.trezor.io/*/popup.html"
+            ],
+            "js": [
+                "scripts/vendor/trezor/content-script.js"
+            ]
+        }
+    ],
+    "content_security_policy": {
+        "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'",
+        "sandbox": "sandbox allow-scripts allow-forms allow-popups allow-modals; script-src 'self' 'unsafe-inline' 'unsafe-eval'; child-src 'self'"
+    },
+    "default_locale": "en",
+    "description": "__MSG_wallet_intro_text_desc__",
+    "icons": {
+        "16": "static/images/icon-16.png",
+        "19": "static/images/icon-19.png",
+        "32": "static/images/icon-32.png",
+        "38": "static/images/icon-38.png",
+        "48": "static/images/icon-48.png",
+        "64": "static/images/icon-64.png",
+        "128": "static/images/icon-128.png",
+        "512": "static/images/icon-512.png"
+    },
+    "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAnLQGK07fyAAjo3mK1lj0D+9mQkOtGJq5uQLbGmMFi8ZR1Mv5d6Gtct6V/hG5O8L1uhNeluRHdfL0HFRaRqdLS7gutUwd1ElXrf5DkywMqWD7MkC6UQ4FXy72Mp/pj34X+bfYiUhkKkbTwBlAUAeKSg81Hm225OW63zG/R72C7f3DVUEK13unn/EPTON+61BdvGyzqi9Bb28GACNV87w1PyQH9vsX+wjQ9ihZ11jKVhZ2cs3A+s5e2i9J9X3OQ/vqrIHVJEooeag3DURIwfGt/Pum0MtwA68yNnBBozviHxYq64hX4CiTPg3cy6FcqFzIcRTgB4S2XI0n1N0bp633YwIDAQAB",
+    "manifest_version": 3,
+    "name": "__MSG_wallet_intro_product_name__",
+    "permissions": [
+        "storage",
+        "unlimitedStorage",
+        "activeTab",
+        "notifications",
+        "scripting",
+        "contextMenus",
+        "sidePanel",
+        "system.cpu",
+        "gcm"
+    ],
+    "side_panel": {
+        "default_path": "sidepanel.html"
+    },
+    "host_permissions": [
+        "http://*/*",
+        "https://*/*"
+    ],
+    "short_name": "__MSG_wallet_intro_maintitle_product_name__",
+    "web_accessible_resources": [
+        {
+            "resources": [
+                "scripts/lib/inpage.js"
+            ],
+            "matches": [
+                "<all_urls>"
+            ]
+        },
+        {
+            "resources": [
+                "static/images/icon*"
+            ],
+            "matches": [
+                "<all_urls>"
+            ]
+        },
+        {
+            "resources": [
+                "static/fonts/HarmonyOS_Sans_Web/*"
+            ],
+            "matches": [
+                "<all_urls>"
+            ]
+        }
+    ],
+    "version": "3.34.19",
+    "sandbox": {
+        "pages": [
+            "sandbox.html"
+        ]
+    },
+    "externally_connectable": {
+        "matches": [
+            "https://okx.com/*"
+        ],
+        "ids": [
+            "*"
+        ]
+    },
+    "minimum_chrome_version": "88"
+}

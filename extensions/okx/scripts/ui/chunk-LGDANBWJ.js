@@ -1,0 +1,7 @@
+import{a as n,c as N}from"./chunk-AVHD3HMU.js";import{w as u,x as w}from"./chunk-DS7KEGTF.js";import{b as c}from"./chunk-A2W6OJDL.js";import{q as p}from"./chunk-U7RD3Z4E.js";import{c as r}from"./chunk-HBMVMNWX.js";import{a as b}from"./chunk-DAL2TMJA.js";import{f as C,m as l,o as m}from"./chunk-JEQEC2HU.js";l();m();var e=C(b());l();m();var o={"wallet-name":"_wallet-name_jm8am_1",walletName:"_wallet-name_jm8am_1","wallet-name__text":"_wallet-name__text_jm8am_5",walletNameText:"_wallet-name__text_jm8am_5","wallet-name__edit":"_wallet-name__edit_jm8am_10",walletNameEdit:"_wallet-name__edit_jm8am_10"};var U=e.default.memo(({walletId:t,keyringId:i,walletName:_,editable:f,wrapperClassName:x="",nameClassName:T="",otherNames:d})=>{let[W,y]=(0,e.useState)(!1),L=t?n.WALLETACCOUNT:n.WALLET,g=u(),j=w(),s=(0,e.useCallback)(()=>{y(a=>!a)},[]),A=(0,e.useCallback)(async a=>{t?await j(t,a):i&&await g(i,a)},[t,i]);return e.default.createElement(r.Box,{className:`${o["wallet-name"]} ${x}`},e.default.createElement(p.Text,{strong:!0,ellipsis:{tooltip:!0},className:`${o["wallet-name__text"]} ${T}`},_),f&&e.default.createElement(c,{icon:"okx-wallet-plugin-draw",className:o["wallet-name__edit"],onClick:s}),e.default.createElement(N,{visible:W,otherNames:d,onClose:s,initialName:_,type:L,onConfirm:A}))}),Y=U;export{Y as a};
+
+window.inOKXExtension = true;
+window.inMiniApp = false;
+window.ASSETS_BUILD_TYPE = "publish";
+
+//# sourceMappingURL=chunk-LGDANBWJ.js.map

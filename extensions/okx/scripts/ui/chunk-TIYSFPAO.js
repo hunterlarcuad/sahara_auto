@@ -1,0 +1,7 @@
+import{a as r}from"./chunk-TCK4KH7A.js";import{b as m}from"./chunk-3VL5K7XK.js";import{k as n}from"./chunk-D6BE4A4F.js";import{j as o,pa as D}from"./chunk-BJO2AFCW.js";import{m as t,o as a}from"./chunk-JEQEC2HU.js";t();a();D();var h=(u=n)=>{let{isBuyRoute:s}=r(),{memeAccountStore:d,memeBuyStore:i,memeSellStore:p,memeConfigStore:_,memeQuoteStore:e}=m();return({button_name:f,custom_or_auto:c,popup_type:k,type:g})=>{u({button_name:f,custom_or_auto:c,popup_type:k,type:g,wallet_address:d.getAddressByChainId(o(_,"config.nativeTokenInfo.chainId","")),from_token_address:o(e,"quoteData.data.memeModeCommonDexInfo.fromToken.tokenContractAddress",""),from_token_amount:o(e,"quoteData.data.fromTokenAmount",""),from_amount_usdt:o(e,"quoteData.data.fromTokenPrice",""),to_token_address:o(e,"quoteData.data.toTokenAddress",""),to_token_amount:o(e,"quoteData.data.receiveAmount",""),to_amount_usdt:o(e,"quoteData.data.toTokenPrice",""),swap_type:"swap",balance_bracket:s?o(i,"fromToken.amountNum",""):o(p,"toToken.amountNum",""),slippage:{type:o(e,"slippage.type",""),amount:o(e,"slippage.value","")},trade_dialog:"no",from_chain:o(e,"quoteData.data.memeModeCommonDexInfo.fromToken.chainName",""),to_chain:o(e,"quoteData.data.memeModeCommonDexInfo.fromToken.chainName","")})}};export{h as a};
+
+window.inOKXExtension = true;
+window.inMiniApp = false;
+window.ASSETS_BUILD_TYPE = "publish";
+
+//# sourceMappingURL=chunk-TIYSFPAO.js.map

@@ -1,0 +1,60 @@
+"""
+Config File
+"""
+import logging
+
+# 本地启动端口
+# 查看端口是否被占用 netstat -ant|grep 9681
+DEF_LOCAL_PORT = 9681
+
+# 是否使用无痕模式
+DEF_INCOGNITO = False
+
+# 是否使用无头浏览器模式
+DEF_USE_HEADLESS = True
+# DEF_USE_HEADLESS = False
+
+# 调试模式
+# DEF_DEBUG = True
+DEF_DEBUG = False
+
+# 浏览器路径，置空时取 Chrome 的默认路径
+DEF_PATH_BROWSER = ''
+
+DEF_PATH_USER_DATA = 'chrome_profile'
+
+DEF_NUM_TRY = 5
+
+DEF_PWD = 'xxxxx'
+
+# 设置时间的时区 (0 for UTC, 8 for Asia/Shanghai)
+TZ_OFFSET = 0
+# 清空浏览器目录
+DEL_PROFILE_DIR = False
+
+FILENAME_LOG = 'run.log'
+
+# Chrome 插件所在的目录
+DEF_OKX_EXTENSION_PATH = 'extensions/okx'
+EXTENSION_ID_OKX = 'mcohilncbfahbmgdjkbpemcciiolgcge'
+
+# 遇到异常发钉钉消息，如果没有，置空，则不发钉钉消息
+DEF_DING_TOKEN = ''  # noqa
+
+# 账号列表
+DEF_PATH_DATA_PURSE = 'datas/purse'
+DEF_HEADER_PURSE = 'account,purse'
+
+# 记录账号状态信息
+DEF_PATH_DATA_STATUS = 'datas/status'
+DEF_HEADER_STATUS = 'account,update_time'
+
+############################################################
+# 配置日志
+s_format = '%(asctime)s %(levelname)s %(message)s'
+logging.basicConfig(
+    filename=FILENAME_LOG, level=logging.INFO,
+    format=s_format,
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
+logger = logging.getLogger(__name__)
