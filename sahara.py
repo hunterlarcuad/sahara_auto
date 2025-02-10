@@ -39,8 +39,6 @@ from conf import DEF_HEADER_STATUS
 from conf import DEF_OKX_EXTENSION_PATH
 from conf import EXTENSION_ID_OKX
 from conf import DEF_PWD
-from conf import DEF_FEE_MAX_BASE
-from conf import DEF_FEE_PRIORITY
 
 from conf import DEF_PATH_DATA_PURSE
 from conf import DEF_HEADER_PURSE
@@ -126,7 +124,10 @@ class SaharaTask():
             pass
         else:
             if self.page:
-                self.page.quit()
+                try:
+                    self.page.quit()
+                except Exception as e:
+                    logger.info(f'[Close] Error: {e}')
 
     def initChrome(self, s_profile):
         """
@@ -386,7 +387,7 @@ class SaharaTask():
                         if not isinstance(ele_input, NoneElement):
                             # 使用动作，输入完 Confirm 按钮才会变成可点击状态
                             self.page.actions.move_to(ele_input).click().type(s_key) # noqa
-                            self.page.wait(1)
+                            self.page.wait(5)
                             self.logit('init_okx', 'Input Private key')
                     is_bulk = True
                     if is_bulk:
@@ -464,9 +465,15 @@ class SaharaTask():
             ele_info = self.page.ele('Your portal to Web3', timeout=2)
             if not isinstance(ele_info, NoneElement):
                 self.logit('init_okx', 'Input password to unlock ...')
-                ele_input = self.page.ele('@@tag()=input@@data-testid=okd-input@@placeholder:Enter', timeout=2) # noqa
+                s_path = '@@tag()=input@@data-testid=okd-input@@placeholder:Enter'
+                ele_input = self.page.ele(s_path, timeout=2) # noqa
                 if not isinstance(ele_input, NoneElement):
                     self.page.actions.move_to(ele_input).click().type(DEF_PWD)
+                    if ele_input.value != DEF_PWD:
+                        self.logit('init_okx', '[ERROR] Fail to input passwrod !')
+                        self.page.set.window.max()
+                        return False
+
                     self.page.wait(1)
                     ele_btn = self.page.ele('@@tag()=button@@data-testid=okd-button@@text():Unlock', timeout=2) # noqa
                     if not isinstance(ele_btn, NoneElement):
@@ -488,7 +495,8 @@ class SaharaTask():
                         ele_btn.click(by_js=True)
                         self.page.wait(1)
                     else:
-                        self.logit('init_okx', 'What is this ...')
+                        self.logit('init_okx', '[ERROR] What is this ... [quit]')
+                        self.page.quit()
 
         self.logit('init_okx', 'login failed [ERROR]')
         return False
@@ -514,6 +522,9 @@ class SaharaTask():
                 '',
                 '',
             ]
+        if self.dic_status[self.args.s_profile][idx_status] == claim_date:
+            return
+
         self.dic_status[self.args.s_profile][idx_status] = claim_date
         self.dic_status[self.args.s_profile][4] = update_time
 
@@ -753,11 +764,11 @@ class SaharaTask():
                     ele_btn.click()
                     self.page.wait(3)
                     self.update_status(idx_status)
-                    self.is_update = True
                     self.logit(None, f'Claim success [{s_task}]') # noqa
                     return True
                 elif 'claimed' == s_info:
                     self.logit(None, f'Already claimed before [{s_task}]') # noqa
+                    self.update_status(idx_status)
                     return True
                 else:
                     if self.galxe_task():
@@ -774,6 +785,9 @@ class SaharaTask():
         date_time_obj = datetime.strptime(date_time_str, date_time_format)
         # 将datetime对象转换为时间戳
         ts_tx = int(time.mktime(date_time_obj.timetuple()))
+
+        if int(time.time()) - ts_tx > 3600 * 4:
+            ts_tx = ts_tx - 86400
 
         date_tx = format_ts(ts_tx, style=1, tz_offset=TZ_OFFSET)
         date_tx = date_tx[:10]
@@ -828,6 +842,9 @@ class SaharaTask():
                                 if date_tx == date_now:
                                     self.logit('is_tx_exist', f'tx is exist: {s_info.replace('\n', ' ')}') # noqa
                                     return True
+                                else:
+                                    self.logit(None, f'tx is outdated: {s_info.replace('\n', ' ')}') # noqa
+                                    return False
 
                         # Pending 如果不是0，需要等待
                         ele_info = self.page.ele('@@tag()=div@@class:tx-history__tabs-option@@text():Pending', timeout=2) # noqa
@@ -921,11 +938,13 @@ class SaharaTask():
         """
         """
         b_ret = False
+        b_tx_exist = False
 
         for i in range(1, DEF_NUM_TRY+1):
             self.logit('gobi_bear', f'try_i={i}/{DEF_NUM_TRY}')
 
-            b_tx_exist = self.is_tx_exist()
+            if not b_tx_exist:
+                b_tx_exist = self.is_tx_exist()
 
             self.click_gobibear()
 
@@ -941,18 +960,19 @@ class SaharaTask():
                         ele_btn.click()
                         self.page.wait(3)
                         self.update_status(3)
-                        self.is_update = True
-                        self.logit(None, f'Claim success [{s_task}]') # noqa
+                        self.logit(None, f'Claim success ✅ [{s_task}]') # noqa
                         b_ret = b_ret or True
                     elif 'claimed' == s_info:
                         self.logit(None, f'Already claimed before [{s_task}]') # noqa
+                        self.update_status(3)
                         b_ret = b_ret or True
                     elif b_tx_exist:
-                        self.logit(None, f'Refresh [{s_task}]') # noqa
+                        self.logit(None, f'Refresh ⭕️ [{s_task}]') # noqa
                         ele_btn.click()
-                        self.page.wait(5)
+                        self.page.wait(10)
                     else:
                         self.gene_tx()
+                        self.page.wait(10)
 
             b_ret_visit = True
             ele_btn = self.page.ele('@@tag()=div@@class=task-group-tab active@@text()=Daily Check-in', timeout=2) # noqa
@@ -1181,4 +1201,5 @@ if __name__ == '__main__':
 """
 python3 sahara.py --sleep_sec_min=30 --sleep_sec_max=60 --loop_interval=60
 python3 sahara.py --sleep_sec_min=600 --sleep_sec_max=1800 --loop_interval=60
+python3 sahara.py --sleep_sec_min=60 --sleep_sec_max=180
 """
