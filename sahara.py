@@ -507,6 +507,20 @@ class SaharaTask():
         s_name = f'{self.args.s_profile}_{name}'
         self.page.get_screenshot(path='tmp_img', name=s_name, full_page=True)
 
+    def is_task_complete(self, idx_status, s_profile=None):
+        if s_profile is None:
+            s_profile = self.args.s_profile
+
+        if s_profile not in self.dic_status:
+            return False
+
+        claimed_date = self.dic_status[s_profile][idx_status]
+        date_now = format_ts(time.time(), style=1, tz_offset=TZ_OFFSET) # noqa
+        if date_now != claimed_date:
+            return False
+        else:
+            return True
+
     def update_status(self, idx_status, update_ts=None):
         if not update_ts:
             update_ts = time.time()
@@ -819,7 +833,7 @@ class SaharaTask():
                 # History
                 ele_blk = self.page.ele(f'@@tag()=div@@class:_iconWrapper_@@text()=History', timeout=2) # noqa
                 if not isinstance(ele_blk, NoneElement):
-                    self.logit('is_tx_exist', 'Click History ...') # noqa
+                    self.logit(None, 'Click History ...') # noqa
                     ele_btn = ele_blk.ele('@@tag()=div@@class:_wallet', timeout=2) # noqa
                     if not isinstance(ele_btn, NoneElement):
                         ele_btn.click(by_js=True)
@@ -827,7 +841,7 @@ class SaharaTask():
 
                         # Completed
                         ele_btns = self.page.eles('.tx-history-list-row', timeout=2) # noqa
-                        self.logit('is_tx_exist', f'Completed tx: {len(ele_btns)}') # noqa
+                        self.logit(None, f'Completed tx: {len(ele_btns)}') # noqa
                         if len(ele_btns) > 0:
                             ele_btn = ele_btns[0]
                             ele_btn.click(by_js=True)
@@ -839,22 +853,35 @@ class SaharaTask():
                                 date_tx = self.get_utc_date(s_info)
                                 date_now = format_ts(time.time(), style=1, tz_offset=TZ_OFFSET)
 
+                                self.logit(None, f'latest tx: {s_info.replace('\n', ' ')}') # noqa
                                 if date_tx == date_now:
-                                    self.logit('is_tx_exist', f'tx is exist: {s_info.replace('\n', ' ')}') # noqa
+                                    self.logit(None, 'Today\'s tx is exist, return True') # noqa
                                     return True
                                 else:
-                                    self.logit(None, f'tx is outdated: {s_info.replace('\n', ' ')}') # noqa
-                                    return False
+                                    self.logit(None, f'tx is outdated, return False') # noqa
+                                #     # 可能是 Pending 状态
+                                #     return False
 
                         # Pending 如果不是0，需要等待
                         ele_info = self.page.ele('@@tag()=div@@class:tx-history__tabs-option@@text():Pending', timeout=2) # noqa
                         if not isinstance(ele_info, NoneElement):
                             s_info = ele_info.text
-                            if s_info.find('(0)'):
+                            if s_info.find('(0)') >= 0:
+                                self.logit(None, 'No pending tx') # noqa
                                 return False
                             else:
-                                self.logit('is_tx_exist', f'[WARNING] tx is Pending: {s_info}') # noqa
+                                n_sleep = 10
+                                self.logit(None, f'[WARNING] tx is Pending: {s_info} Sleep {n_sleep} seconds') # noqa
+                                self.page.wait(n_sleep)
                                 return True
+        else:
+            # Cancel Uncomplete request
+            ele_btn = self.page.ele('@@tag()=button@@data-testid=okd-button@@text():Cancel', timeout=2) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                ele_btn.click(by_js=True)
+                self.page.wait(1)
+                self.logit(None, 'Uncomplete request. Cancel')
+
         return True
 
 
@@ -863,6 +890,8 @@ class SaharaTask():
         self.page.get(s_url)
         # self.page.wait.load_start()
         self.page.wait(3)
+
+        self.logit('gene_tx', 'Generate a new transaction')
 
         ele_btn = self.page.ele('@@tag()=div@@class=_container_1eikt_1', timeout=2) # noqa
         if not isinstance(ele_btn, NoneElement):
@@ -913,14 +942,16 @@ class SaharaTask():
                         if not isinstance(ele_btn, NoneElement):
                             ele_btn.click(by_js=True)
                             self.page.wait(2)
-                            self.logit(None, 'Click Next')
+                            self.logit(None, '[transaction] Click Next')
 
                         # Confirm
                         ele_btn = self.page.ele('@@tag()=button@@data-testid=okd-button@@text():Confirm', timeout=2) # noqa
                         if not isinstance(ele_btn, NoneElement):
                             ele_btn.click(by_js=True)
                             self.page.wait(6)
-                            self.logit(None, 'Confirm')
+                            self.logit(None, 'Confirm transaction')
+                            return True
+        return False
 
     def click_gobibear(self):
         self.page.get('https://legends.saharalabs.ai')
@@ -937,59 +968,72 @@ class SaharaTask():
     def gobi_bear(self):
         """
         """
-        b_ret = False
+        b_ret_tx = False
         b_tx_exist = False
 
         for i in range(1, DEF_NUM_TRY+1):
             self.logit('gobi_bear', f'try_i={i}/{DEF_NUM_TRY}')
 
-            if not b_tx_exist:
-                b_tx_exist = self.is_tx_exist()
+            idx_status = 3
+            if self.is_task_complete(idx_status):
+                b_ret_tx = True
+            else:
+                if not b_tx_exist:
+                    b_tx_exist = self.is_tx_exist()
+                self.logit('gobi_bear', f'b_tx_exist={b_tx_exist}')
 
-            self.click_gobibear()
+                self.click_gobibear()
 
-            s_task = 'Generate at least one transaction on Sahara Testnet'
-            s_xpath = f'@@tag()=div@@class=task-item@@text():{s_task}'
-            ele_blk = self.page.ele(s_xpath, timeout=2)
-            if not isinstance(ele_blk, NoneElement):
-                ele_btn = ele_blk.ele('@@tag()=div@@class=task-buttons', timeout=2) # noqa
-                if not isinstance(ele_btn, NoneElement):
-                    s_info = ele_btn.text
-                    self.logit('gobibear_claim', f'Status: {s_info} [{s_task}]') # noqa
-                    if 'claim' == s_info:
-                        ele_btn.click()
-                        self.page.wait(3)
-                        self.update_status(3)
-                        self.logit(None, f'Claim success ✅ [{s_task}]') # noqa
-                        b_ret = b_ret or True
-                    elif 'claimed' == s_info:
-                        self.logit(None, f'Already claimed before [{s_task}]') # noqa
-                        self.update_status(3)
-                        b_ret = b_ret or True
-                    elif b_tx_exist:
-                        self.logit(None, f'Refresh ⭕️ [{s_task}]') # noqa
-                        ele_btn.click()
-                        self.page.wait(10)
-                    else:
-                        self.gene_tx()
-                        self.page.wait(10)
+                s_task = 'Generate at least one transaction on Sahara Testnet'
+                s_xpath = f'@@tag()=div@@class=task-item@@text():{s_task}'
+                ele_blk = self.page.ele(s_xpath, timeout=2)
+                if not isinstance(ele_blk, NoneElement):
+                    ele_btn = ele_blk.ele('@@tag()=div@@class=task-buttons', timeout=2) # noqa
+                    if not isinstance(ele_btn, NoneElement):
+                        s_info = ele_btn.text
+                        self.logit('gobibear_claim', f'Status: {s_info} [{s_task}]') # noqa
+                        if 'claim' == s_info:
+                            ele_btn.click()
+                            self.page.wait(3)
+                            self.update_status(3)
+                            self.logit(None, f'Claim success ✅ [{s_task}]') # noqa
+                            b_ret_tx = True
+                        elif 'claimed' == s_info:
+                            self.logit(None, f'Already claimed before [{s_task}]') # noqa
+                            self.update_status(3)
+                            b_ret_tx = True
+                        elif b_tx_exist:
+                            self.logit(None, f'Refresh ⭕️ [{s_task}]') # noqa
+                            ele_btn.click()
+                            self.page.wait(10)
+                        else:
+                            self.gene_tx()
+                            self.page.wait(10)
 
             b_ret_visit = True
             ele_btn = self.page.ele('@@tag()=div@@class=task-group-tab active@@text()=Daily Check-in', timeout=2) # noqa
             if not isinstance(ele_btn, NoneElement):
-                s_task = 'Visit the Sahara AI blog'
-                b_visit1 = self.gobibear_claim(s_task, 1)
+                idx_status = 1
+                if not self.is_task_complete(idx_status):
+                    s_task = 'Visit the Sahara AI blog'
+                    b_visit1 = self.gobibear_claim(s_task, idx_status)
+                else:
+                    b_visit1 = True
 
-                s_task = 'Visit @SaharaLabsAI on X'
-                b_visit2 = self.gobibear_claim(s_task, 2)
+                idx_status = 2
+                if not self.is_task_complete(idx_status):
+                    s_task = 'Visit @SaharaLabsAI on X'
+                    b_visit2 = self.gobibear_claim(s_task, idx_status)
+                else:
+                    b_visit2 = True
 
                 b_ret_visit = b_visit1 and b_visit2
 
 
-            if b_ret and b_ret_visit:
+            if b_ret_tx and b_ret_visit:
                 break
 
-        b_ret = b_ret and b_ret_visit
+        b_ret = b_ret_tx and b_ret_visit
 
         return b_ret
 
@@ -1019,9 +1063,9 @@ def send_msg(instSaharaTask, lst_success):
                 lst_status[1],
             )
         d_cont = {
-            'title': 'Daily Active Finished! [saharafinance]',
+            'title': 'Daily Active Finished! [sahara]',
             'text': (
-                'Daily Active [saharafinance]\n'
+                'Daily Active [sahara]\n'
                 '- {}\n'
                 '{}\n'
                 .format(DEF_HEADER_STATUS, s_info)
