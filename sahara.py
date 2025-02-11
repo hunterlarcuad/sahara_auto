@@ -916,6 +916,19 @@ class SaharaTask():
                 ele_btn.click(by_js=True)
                 self.page.wait(3)
 
+                # get balance
+                ele_info = self.page.ele('@@tag()=div@@class:balance@@text():SAHARA', timeout=2) # noqa
+                if not isinstance(ele_info, NoneElement):
+                    s_info = ele_info.text
+                    self.logit(None, f'SAHARA balance: {s_info}')
+                    flt_balance = float(s_info.split(' ')[0])
+                else:
+                    flt_balance = 0.0
+
+                if flt_balance < 0.02:
+                    self.logit(None, f'❌ SAHARA is insufficient [{flt_balance}] [ERROR]') # noqa
+                    return False
+
                 # Send
                 ele_blk = self.page.ele(f'@@tag()=div@@class:_iconWrapper_@@text()=Send', timeout=2) # noqa
                 if not isinstance(ele_blk, NoneElement):
@@ -1172,7 +1185,7 @@ def main(args):
             try:
                 is_claim = False
                 if j > 1:
-                    logger.info(f'正在重试，当前是第{j}次执行，最多尝试{max_try_except}次 [{s_profile}]') # noqa
+                    logger.info(f'⚠️ 正在重试，当前是第{j}次执行，最多尝试{max_try_except}次 [{s_profile}]') # noqa
 
                 instSaharaTask.set_args(args)
                 instSaharaTask.status_load()
