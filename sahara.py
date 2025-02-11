@@ -894,6 +894,12 @@ class SaharaTask():
 
 
     def gene_tx(self):
+        """
+        Return:
+            DEF_SUCCESS: Success
+            DEF_FAIL: Fail
+            DEF_INSUFFICIENT: Insufficient Balance
+        """
         s_url = f'chrome-extension://{EXTENSION_ID_OKX}/home.html'
         self.page.get(s_url)
         # self.page.wait.load_start()
@@ -927,7 +933,7 @@ class SaharaTask():
 
                 if flt_balance < 0.02:
                     self.logit(None, f'❌ SAHARA is insufficient [{flt_balance}] [ERROR]') # noqa
-                    return False
+                    return DEF_INSUFFICIENT
 
                 # Send
                 ele_blk = self.page.ele(f'@@tag()=div@@class:_iconWrapper_@@text()=Send', timeout=2) # noqa
@@ -971,8 +977,8 @@ class SaharaTask():
                             ele_btn.click(by_js=True)
                             self.page.wait(6)
                             self.logit(None, 'Confirm transaction')
-                            return True
-        return False
+                            return DEF_SUCCESS
+        return DEF_FAIL
 
     def click_gobibear(self):
         self.page.get('https://legends.saharalabs.ai')
@@ -986,70 +992,86 @@ class SaharaTask():
         else:
             return False
 
+    def claim_by_tx(self, b_tx_exist):
+        retn = DEF_FAIL
+
+        idx_status = IDX_TX
+        if self.is_task_complete(idx_status):
+            retn = DEF_SUCCESS
+        else:
+            s_task = 'Generate at least one transaction on Sahara Testnet'
+            s_xpath = f'@@tag()=div@@class=task-item@@text():{s_task}'
+            ele_blk = self.page.ele(s_xpath, timeout=2)
+            if not isinstance(ele_blk, NoneElement):
+                ele_btn = ele_blk.ele('@@tag()=div@@class=task-buttons', timeout=2) # noqa
+                if not isinstance(ele_btn, NoneElement):
+                    s_info = ele_btn.text
+                    self.logit('gobibear_claim', f'Status: {s_info} [{s_task}]') # noqa
+                    if 'claim' == s_info:
+                        ele_btn.click()
+                        self.page.wait(3)
+                        self.update_status(idx_status)
+                        self.logit(None, f'Claim success ✅ [{s_task}]')
+                        retn = DEF_SUCCESS
+                    elif 'claimed' == s_info:
+                        self.logit(None, f'Already claimed before [{s_task}]') # noqa
+                        self.update_status(idx_status)
+                        retn = DEF_SUCCESS
+                    else:
+                        if not b_tx_exist:
+                            b_tx_exist = self.is_tx_exist()
+                        self.logit('gobi_bear', f'b_tx_exist={b_tx_exist}')
+
+                        if b_tx_exist:
+                            self.logit(None, f'Refresh ⭕️ [{s_task}]')
+                            ele_btn.click()
+                            self.page.wait(10)
+                        else:
+                            if DEF_INSUFFICIENT == self.gene_tx():
+                                retn = DEF_INSUFFICIENT
+                            else:
+                                self.page.wait(10)
+        return (retn, b_tx_exist)
+
     def gobi_bear(self):
         """
         """
         b_ret_tx = False
         b_tx_exist = False
 
+        b_ignore = False
+
         for i in range(1, DEF_NUM_TRY+1):
             self.logit('gobi_bear', f'try_i={i}/{DEF_NUM_TRY}')
 
             self.click_gobibear()
 
-            idx_status = IDX_TX
-            if self.is_task_complete(idx_status):
-                b_ret_tx = True
-            else:
-                s_task = 'Generate at least one transaction on Sahara Testnet'
-                s_xpath = f'@@tag()=div@@class=task-item@@text():{s_task}'
-                ele_blk = self.page.ele(s_xpath, timeout=2)
-                if not isinstance(ele_blk, NoneElement):
-                    ele_btn = ele_blk.ele('@@tag()=div@@class=task-buttons', timeout=2) # noqa
-                    if not isinstance(ele_btn, NoneElement):
-                        s_info = ele_btn.text
-                        self.logit('gobibear_claim', f'Status: {s_info} [{s_task}]') # noqa
-                        if 'claim' == s_info:
-                            ele_btn.click()
-                            self.page.wait(3)
-                            self.update_status(idx_status)
-                            self.logit(None, f'Claim success ✅ [{s_task}]')
-                            b_ret_tx = True
-                        elif 'claimed' == s_info:
-                            self.logit(None, f'Already claimed before [{s_task}]') # noqa
-                            self.update_status(idx_status)
-                            b_ret_tx = True
-                        else:
-                            if not b_tx_exist:
-                                b_tx_exist = self.is_tx_exist()
-                            self.logit('gobi_bear', f'b_tx_exist={b_tx_exist}')
-
-                            if b_tx_exist:
-                                self.logit(None, f'Refresh ⭕️ [{s_task}]')
-                                ele_btn.click()
-                                self.page.wait(10)
-                            else:
-                                self.gene_tx()
-                                self.page.wait(10)
+            if b_ignore is False:
+                (retn, b_tx_exist) = self.claim_by_tx(b_tx_exist)
+                if retn in [DEF_SUCCESS, DEF_INSUFFICIENT]:
+                    b_ignore = True
+                    b_ret_tx = True
 
             b_ret_visit = True
             ele_btn = self.page.ele('@@tag()=div@@class=task-group-tab active@@text()=Daily Check-in', timeout=2) # noqa
-            if not isinstance(ele_btn, NoneElement):
-                idx_status = IDX_VISIT1
-                if not self.is_task_complete(idx_status):
-                    s_task = 'Visit the Sahara AI blog'
-                    b_visit1 = self.gobibear_claim(s_task, idx_status)
-                else:
-                    b_visit1 = True
+            if isinstance(ele_btn, NoneElement):
+                self.click_gobibear()
 
-                idx_status = IDX_VISIT2
-                if not self.is_task_complete(idx_status):
-                    s_task = 'Visit @SaharaLabsAI on X'
-                    b_visit2 = self.gobibear_claim(s_task, idx_status)
-                else:
-                    b_visit2 = True
+            idx_status = IDX_VISIT1
+            if not self.is_task_complete(idx_status):
+                s_task = 'Visit the Sahara AI blog'
+                b_visit1 = self.gobibear_claim(s_task, idx_status)
+            else:
+                b_visit1 = True
 
-                b_ret_visit = b_visit1 and b_visit2
+            idx_status = IDX_VISIT2
+            if not self.is_task_complete(idx_status):
+                s_task = 'Visit @SaharaLabsAI on X'
+                b_visit2 = self.gobibear_claim(s_task, idx_status)
+            else:
+                b_visit2 = True
+
+            b_ret_visit = b_visit1 and b_visit2
 
             if b_ret_tx and b_ret_visit:
                 break
