@@ -23,7 +23,6 @@ from fun_utils import get_date
 from fun_utils import load_file
 from fun_utils import save2file
 from fun_utils import format_ts
-# from fun_utils import time_difference
 from fun_utils import extract_numbers
 
 from conf import DEF_LOCAL_PORT
@@ -58,6 +57,11 @@ DEF_INSUFFICIENT = -1
 DEF_SUCCESS = 0
 DEF_FAIL = 1
 
+# output
+IDX_VISIT1 = 1
+IDX_VISIT2 = 2
+IDX_TX = 3
+IDX_UPDATE = 4
 
 class SaharaTask():
     def __init__(self) -> None:
@@ -564,6 +568,11 @@ class SaharaTask():
 
             self.logit('sahara_login', f'tabs_count={self.page.tabs_count}')
 
+            ele_btn = self.page.ele('@@tag()=img@@src:maintenance', timeout=2) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                self.logit('sahara_login', 'Server maintenance in progress...')
+                return False
+
             # 钱包未连接
             ele_btn = self.page.ele('@@tag()=span@@text()= Sign In ', timeout=2) # noqa
             if not isinstance(ele_btn, NoneElement):
@@ -706,7 +715,6 @@ class SaharaTask():
                 ele_refresh.click()
                 self.page.wait(3)
 
-
         # Check Status
         n_wait_sec = 5
         j = 0
@@ -759,7 +767,6 @@ class SaharaTask():
             self.page.get('https://legends.saharalabs.ai')
 
             return b_ret
-
 
     def gobibear_claim(self, s_task, idx_status):
         """
@@ -851,9 +858,10 @@ class SaharaTask():
                             if not isinstance(ele_info, NoneElement):
                                 s_info = ele_info.text
                                 date_tx = self.get_utc_date(s_info)
-                                date_now = format_ts(time.time(), style=1, tz_offset=TZ_OFFSET)
+                                date_now = format_ts(time.time(), style=1, tz_offset=TZ_OFFSET) # noqa
 
-                                self.logit(None, f'latest tx: {s_info.replace('\n', ' ')}') # noqa
+                                s_info = s_info.replace('\n', ' ')
+                                self.logit(None, f'latest tx: {s_info}') # noqa
                                 if date_tx == date_now:
                                     self.logit(None, 'Today\'s tx is exist, return True') # noqa
                                     return True
@@ -974,16 +982,12 @@ class SaharaTask():
         for i in range(1, DEF_NUM_TRY+1):
             self.logit('gobi_bear', f'try_i={i}/{DEF_NUM_TRY}')
 
-            idx_status = 3
+            self.click_gobibear()
+
+            idx_status = IDX_TX
             if self.is_task_complete(idx_status):
                 b_ret_tx = True
             else:
-                if not b_tx_exist:
-                    b_tx_exist = self.is_tx_exist()
-                self.logit('gobi_bear', f'b_tx_exist={b_tx_exist}')
-
-                self.click_gobibear()
-
                 s_task = 'Generate at least one transaction on Sahara Testnet'
                 s_xpath = f'@@tag()=div@@class=task-item@@text():{s_task}'
                 ele_blk = self.page.ele(s_xpath, timeout=2)
@@ -995,32 +999,37 @@ class SaharaTask():
                         if 'claim' == s_info:
                             ele_btn.click()
                             self.page.wait(3)
-                            self.update_status(3)
-                            self.logit(None, f'Claim success ✅ [{s_task}]') # noqa
+                            self.update_status(idx_status)
+                            self.logit(None, f'Claim success ✅ [{s_task}]')
                             b_ret_tx = True
                         elif 'claimed' == s_info:
                             self.logit(None, f'Already claimed before [{s_task}]') # noqa
-                            self.update_status(3)
+                            self.update_status(idx_status)
                             b_ret_tx = True
-                        elif b_tx_exist:
-                            self.logit(None, f'Refresh ⭕️ [{s_task}]') # noqa
-                            ele_btn.click()
-                            self.page.wait(10)
                         else:
-                            self.gene_tx()
-                            self.page.wait(10)
+                            if not b_tx_exist:
+                                b_tx_exist = self.is_tx_exist()
+                            self.logit('gobi_bear', f'b_tx_exist={b_tx_exist}')
+
+                            if b_tx_exist:
+                                self.logit(None, f'Refresh ⭕️ [{s_task}]')
+                                ele_btn.click()
+                                self.page.wait(10)
+                            else:
+                                self.gene_tx()
+                                self.page.wait(10)
 
             b_ret_visit = True
             ele_btn = self.page.ele('@@tag()=div@@class=task-group-tab active@@text()=Daily Check-in', timeout=2) # noqa
             if not isinstance(ele_btn, NoneElement):
-                idx_status = 1
+                idx_status = IDX_VISIT1
                 if not self.is_task_complete(idx_status):
                     s_task = 'Visit the Sahara AI blog'
                     b_visit1 = self.gobibear_claim(s_task, idx_status)
                 else:
                     b_visit1 = True
 
-                idx_status = 2
+                idx_status = IDX_VISIT2
                 if not self.is_task_complete(idx_status):
                     s_task = 'Visit @SaharaLabsAI on X'
                     b_visit2 = self.gobibear_claim(s_task, idx_status)
@@ -1028,7 +1037,6 @@ class SaharaTask():
                     b_visit2 = True
 
                 b_ret_visit = b_visit1 and b_visit2
-
 
             if b_ret_tx and b_ret_visit:
                 break
@@ -1053,9 +1061,11 @@ def send_msg(instSaharaTask, lst_success):
     if len(DEF_DING_TOKEN) > 0 and len(lst_success) > 0:
         s_info = ''
         for s_profile in lst_success:
+            lst_status = None
             if s_profile in instSaharaTask.dic_status:
                 lst_status = instSaharaTask.dic_status[s_profile]
-            else:
+
+            if lst_status is None:
                 lst_status = [s_profile, -1]
 
             s_info += '- {} {}\n'.format(
@@ -1162,7 +1172,7 @@ def main(args):
             try:
                 is_claim = False
                 if j > 1:
-                    logger.info(f'异常重试，当前是第{j}次执行，最多尝试{max_try_except}次 [{s_profile}]') # noqa
+                    logger.info(f'正在重试，当前是第{j}次执行，最多尝试{max_try_except}次 [{s_profile}]') # noqa
 
                 instSaharaTask.set_args(args)
                 instSaharaTask.status_load()
@@ -1175,7 +1185,7 @@ def main(args):
                 is_claim = False
                 is_ready_claim = True
                 if is_complete(lst_status):
-                    logger.info(f'[{s_profile}] Last update at {avail_time}') # noqa
+                    logger.info(f'[{s_profile}] Last update at {lst_status[IDX_UPDATE]}') # noqa
                     is_ready_claim = False
                     break
                 if is_ready_claim:
