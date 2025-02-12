@@ -25,6 +25,9 @@ unzip okx.crx -d okx/
 
 # Run
 ```
+cd sahara_auto/
 cp conf.py.sample conf.py
+cp datas/purse/purse.csv.sample datas/purse/purse.csv
+# modify datas/purse/purse.csv
 python3 sahara.py
 ```
