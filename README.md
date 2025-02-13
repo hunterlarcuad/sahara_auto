@@ -17,12 +17,6 @@ pip install --upgrade pip
 pip install -r requirements.txt
 ```
 
-# Plugin
-```
-cd sahara_auto/extensions/
-unzip okx.crx -d okx/
-```
-
 # Run
 ```
 cd sahara_auto/

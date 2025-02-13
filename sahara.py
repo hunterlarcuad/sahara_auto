@@ -89,6 +89,9 @@ class SaharaTask():
         self.args = args
         self.is_update = False
 
+        # created tx
+        self.is_created_tx = False
+
         self.n_points_spin = -1
         self.n_points = -1
         self.n_referrals = -1
@@ -604,7 +607,6 @@ class SaharaTask():
                     ele_btn.click(by_js=True)
                     self.logit(None, 'OKX Wallet Signature request Confirmed [OK]')
                     self.page.wait(2)
-                    break
 
             # OKX Wallet Add network
             if len(self.page.tab_ids) == 2:
@@ -639,44 +641,51 @@ class SaharaTask():
                 self.logit('sahara_login', 'Need to Connect Wallet ...') # noqa
                 ele_btn.click(by_js=True)
                 self.page.wait(1)
+
+                # Login from the "recent" button
+                ele_btn = self.page.ele('@@tag()=div@@class:text-info-lighten@@text()=Recent', timeout=2) # noqa
+                if not isinstance(ele_btn, NoneElement):
+                    ele_btn.click(by_js=True)
+                    self.page.wait(1)
+
                 ele_btn = self.page.ele('@@tag()=div@@class=ml-3@@text()=OKX', timeout=2) # noqa
                 if not isinstance(ele_btn, NoneElement):
                     ele_btn.click(by_js=True)
                     self.page.wait(1)
 
-                    # OKX Wallet Connect
-                    self.save_screenshot(name='page_wallet_connect.jpg')
-                    if len(self.page.tab_ids) == 2:
-                        tab_id = self.page.latest_tab
-                        tab_new = self.page.get_tab(tab_id)
-                        ele_btn = tab_new.ele('@@tag()=button@@data-testid=okd-button@@text()=Connect', timeout=2) # noqa
-                        if not isinstance(ele_btn, NoneElement):
-                            ele_btn.click(by_js=True)
-                            self.page.wait(3)
-                    else:
-                        continue
-
-                    # OKX Wallet Signature request
-                    self.save_screenshot(name='page_wallet_signature.jpg')
-                    if len(self.page.tab_ids) == 2:
-                        tab_id = self.page.latest_tab
-                        tab_new = self.page.get_tab(tab_id)
-                        ele_btn = tab_new.ele('@@tag()=button@@data-testid=okd-button@@text():Confirm', timeout=2) # noqa
-                        if not isinstance(ele_btn, NoneElement):
-                            ele_btn.click(by_js=True)
-                            self.logit(None, 'OKX Wallet Signature request Confirmed [OK]')
-                            self.page.wait(3)
-                    else:
-                        continue
-
-                    # 弹窗
-                    ele_btn = self.page.ele('@@tag()=span@@class=sr-only@@text()=Close', timeout=2) # noqa
+                # OKX Wallet Connect
+                self.save_screenshot(name='page_wallet_connect.jpg')
+                if len(self.page.tab_ids) == 2:
+                    tab_id = self.page.latest_tab
+                    tab_new = self.page.get_tab(tab_id)
+                    ele_btn = tab_new.ele('@@tag()=button@@data-testid=okd-button@@text()=Connect', timeout=2) # noqa
                     if not isinstance(ele_btn, NoneElement):
-                        self.logit(None, 'Close pop window ...') # noqa
                         ele_btn.click(by_js=True)
-                        self.page.wait(1)
+                        self.page.wait(3)
+                else:
+                    continue
 
-                    return True
+                # OKX Wallet Signature request
+                self.save_screenshot(name='page_wallet_signature.jpg')
+                if len(self.page.tab_ids) == 2:
+                    tab_id = self.page.latest_tab
+                    tab_new = self.page.get_tab(tab_id)
+                    ele_btn = tab_new.ele('@@tag()=button@@data-testid=okd-button@@text():Confirm', timeout=2) # noqa
+                    if not isinstance(ele_btn, NoneElement):
+                        ele_btn.click(by_js=True)
+                        self.logit(None, 'OKX Wallet Signature request Confirmed [OK]')
+                        self.page.wait(3)
+                else:
+                    continue
+
+                # 弹窗
+                ele_btn = self.page.ele('@@tag()=span@@class=sr-only@@text()=Close', timeout=2) # noqa
+                if not isinstance(ele_btn, NoneElement):
+                    self.logit(None, 'Close pop window ...') # noqa
+                    ele_btn.click(by_js=True)
+                    self.page.wait(1)
+
+                return True
             else:
                 self.logit('galxe_login', 'Wallet is connected')
                 return True
@@ -774,9 +783,11 @@ class SaharaTask():
             Visit the Sahara AI blog
             Visit @SaharaLabsAI on X
         """
-        ele_blk = self.page.ele(f'@@tag()=div@@class=task-item@@text():{s_task}', timeout=2) # noqa
+        s_path_blk = f'@@tag()=div@@class=task-item@@text():{s_task}'
+        s_path_btn = '@@tag()=div@@class=task-buttons'
+        ele_blk = self.page.ele(s_path_blk, timeout=2)
         if not isinstance(ele_blk, NoneElement):
-            ele_btn = ele_blk.ele('@@tag()=div@@class=task-buttons', timeout=2) # noqa
+            ele_btn = ele_blk.ele(s_path_btn, timeout=2)
             if not isinstance(ele_btn, NoneElement):
                 s_info = ele_btn.text
                 self.logit('gobibear_claim', f'Status: {s_info} [{s_task}]') # noqa
@@ -794,6 +805,9 @@ class SaharaTask():
                 else:
                     if self.galxe_task():
                         self.click_gobibear()
+                        ele_blk = self.page.ele(s_path_blk, timeout=2)
+                        ele_btn = ele_blk.ele(s_path_btn, timeout=2)
+                        ele_btn.click()
 
         return False
 
@@ -807,7 +821,17 @@ class SaharaTask():
         # 将datetime对象转换为时间戳
         ts_tx = int(time.mktime(date_time_obj.timetuple()))
 
-        if int(time.time()) - ts_tx > 3600 * 4:
+        ts_now = int(time.time())
+
+        if self.is_created_tx is False:
+            n_sec = 10
+            if ts_now - ts_tx <= 60:
+                self.logit(None, f'tx time is less than {n_sec} seconds. ignore.') # noqa
+                ts_tx = ts_tx - 86400
+
+        n_sec = 3600 * 2
+        if ts_now - ts_tx > n_sec:
+            self.logit(None, f'tx time is larger than {n_sec} seconds. ignore.') # noqa
             ts_tx = ts_tx - 86400
 
         date_tx = format_ts(ts_tx, style=1, tz_offset=TZ_OFFSET)
@@ -1003,7 +1027,8 @@ class SaharaTask():
             s_xpath = f'@@tag()=div@@class=task-item@@text():{s_task}'
             ele_blk = self.page.ele(s_xpath, timeout=2)
             if not isinstance(ele_blk, NoneElement):
-                ele_btn = ele_blk.ele('@@tag()=div@@class=task-buttons', timeout=2) # noqa
+                btn_path = '@@tag()=div@@class=task-buttons'
+                ele_btn = ele_blk.ele(btn_path, timeout=2)
                 if not isinstance(ele_btn, NoneElement):
                     s_info = ele_btn.text
                     self.logit('gobibear_claim', f'Status: {s_info} [{s_task}]') # noqa
@@ -1020,6 +1045,10 @@ class SaharaTask():
                     else:
                         if not b_tx_exist:
                             b_tx_exist = self.is_tx_exist()
+                            self.click_gobibear()
+                            ele_blk = self.page.ele(s_xpath, timeout=2)
+                            ele_btn = ele_blk.ele(btn_path, timeout=2)
+
                         self.logit('gobi_bear', f'b_tx_exist={b_tx_exist}')
 
                         if b_tx_exist:
@@ -1031,6 +1060,7 @@ class SaharaTask():
                                 retn = DEF_INSUFFICIENT
                             else:
                                 self.page.wait(10)
+                            self.is_created_tx = True
         return (retn, b_tx_exist)
 
     def gobi_bear(self):
