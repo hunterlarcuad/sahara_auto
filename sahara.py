@@ -31,6 +31,7 @@ from conf import DEF_USE_HEADLESS
 from conf import DEF_DEBUG
 from conf import DEF_PATH_USER_DATA
 from conf import DEF_NUM_TRY
+from conf import NUM_MAX_TRY_PER_DAY
 from conf import DEF_DING_TOKEN
 from conf import DEF_PATH_BROWSER
 from conf import DEF_PATH_DATA_STATUS
@@ -58,10 +59,14 @@ DEF_SUCCESS = 0
 DEF_FAIL = 1
 
 # output
+FIELD_NUM = 7
 IDX_VISIT1 = 1
 IDX_VISIT2 = 2
 IDX_TX = 3
-IDX_UPDATE = 4
+IDX_NUM_TRY = 4
+IDX_NUM_SHARD = 5
+IDX_UPDATE = 6
+
 
 class SaharaTask():
     def __init__(self) -> None:
@@ -528,29 +533,61 @@ class SaharaTask():
         else:
             return True
 
-    def update_status(self, idx_status, update_ts=None):
-        if not update_ts:
-            update_ts = time.time()
+    def update_status(self, idx_status, s_value):
+        update_ts = time.time()
         update_time = format_ts(update_ts, 2, TZ_OFFSET)
 
-        claim_date = update_time[:10]
-
-        if self.args.s_profile not in self.dic_status:
+        def init_status():
             self.dic_status[self.args.s_profile] = [
                 self.args.s_profile,
                 '',
                 '',
                 '',
                 '',
+                '',
+                '',
             ]
-        if self.dic_status[self.args.s_profile][idx_status] == claim_date:
+
+        if self.args.s_profile not in self.dic_status:
+            init_status()
+        if len(self.dic_status[self.args.s_profile]) != FIELD_NUM:
+            init_status()
+        if self.dic_status[self.args.s_profile][idx_status] == s_value:
             return
 
-        self.dic_status[self.args.s_profile][idx_status] = claim_date
-        self.dic_status[self.args.s_profile][4] = update_time
+        self.dic_status[self.args.s_profile][idx_status] = s_value
+        self.dic_status[self.args.s_profile][IDX_UPDATE] = update_time
 
         self.status_save()
         self.is_update = True
+
+    def update_date(self, idx_status, update_ts=None):
+        if not update_ts:
+            update_ts = time.time()
+        update_time = format_ts(update_ts, 2, TZ_OFFSET)
+
+        claim_date = update_time[:10]
+
+        self.update_status(idx_status, claim_date)
+
+    def get_pre_num_try(self, s_profile=None):
+        if s_profile is None:
+            s_profile = self.args.s_profile
+        num_try_pre = 0
+        lst_pre = self.dic_status.get(s_profile, [])
+        if len(lst_pre) == FIELD_NUM:
+            try:
+                num_try_pre = int(lst_pre[IDX_NUM_TRY])
+            except: # noqa
+                pass
+
+        return num_try_pre
+
+    def update_num_try(self, s_profile=None):
+        num_try_pre = self.get_pre_num_try(s_profile)
+        num_try_cur = num_try_pre + 1
+
+        self.update_status(IDX_NUM_TRY, str(num_try_cur))
 
     def sahara_login(self):
         """
@@ -795,12 +832,12 @@ class SaharaTask():
                 if 'claim' == s_info:
                     ele_btn.click()
                     self.page.wait(3)
-                    self.update_status(idx_status)
+                    self.update_date(idx_status)
                     self.logit(None, f'Claim success [{s_task}]') # noqa
                     return True
                 elif 'claimed' == s_info:
                     self.logit(None, f'Already claimed before [{s_task}]') # noqa
-                    self.update_status(idx_status)
+                    self.update_date(idx_status)
                     return True
                 else:
                     if self.galxe_task():
@@ -1006,6 +1043,9 @@ class SaharaTask():
 
     def click_gobibear(self):
         self.page.get('https://legends.saharalabs.ai')
+        # self.page.wait(2)
+        self.page.wait.load_start()
+
         ele_blocks = self.page.eles(f'@@tag()=div@@class=map-point map-animal', timeout=2) # noqa
 
         if len(ele_blocks) > 0:
@@ -1035,12 +1075,12 @@ class SaharaTask():
                     if 'claim' == s_info:
                         ele_btn.click()
                         self.page.wait(3)
-                        self.update_status(idx_status)
+                        self.update_date(idx_status)
                         self.logit(None, f'Claim success ✅ [{s_task}]')
                         retn = DEF_SUCCESS
                     elif 'claimed' == s_info:
                         self.logit(None, f'Already claimed before [{s_task}]') # noqa
-                        self.update_status(idx_status)
+                        self.update_date(idx_status)
                         retn = DEF_SUCCESS
                     else:
                         if not b_tx_exist:
@@ -1115,6 +1155,7 @@ class SaharaTask():
             return False
 
         self.gobi_bear()
+        self.update_num_try()
 
         self.logit('sahara_run', 'Finished!')
         self.close()
@@ -1178,13 +1219,18 @@ def main(args):
     def is_complete(lst_status):
         b_ret = True
         if lst_status:
-            for idx_status in [1, 2, 3]:
+            for idx_status in [IDX_VISIT1, IDX_VISIT2, IDX_TX]:
                 claimed_date = lst_status[idx_status]
                 date_now = format_ts(time.time(), style=1, tz_offset=TZ_OFFSET) # noqa
                 if date_now != claimed_date:
                     b_ret = b_ret and False
         else:
             b_ret = False
+
+        num_try_pre = instSaharaTask.get_pre_num_try(s_profile)
+        if num_try_pre == NUM_MAX_TRY_PER_DAY:
+            b_ret = True
+
         return b_ret
 
     # 将已完成的剔除掉

@@ -25,6 +25,9 @@ DEF_PATH_USER_DATA = 'chrome_profile'
 
 DEF_NUM_TRY = 5
 
+# 每个账号每天最大重试次数
+NUM_MAX_TRY_PER_DAY = 5
+
 DEF_PWD = 'xxxxx'
 
 # 设置时间的时区 (0 for UTC, 8 for Asia/Shanghai)
