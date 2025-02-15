@@ -572,22 +572,44 @@ class SaharaTask():
 
         self.update_status(idx_status, claim_date)
 
-    def get_pre_num_try(self, s_profile=None):
+    def get_status_by_idx(self, idx_status, s_profile=None):
         if s_profile is None:
             s_profile = self.args.s_profile
-        num_try_pre = 0
+
+        s_val = ''
         lst_pre = self.dic_status.get(s_profile, [])
         if len(lst_pre) == FIELD_NUM:
             try:
-                num_try_pre = int(lst_pre[IDX_NUM_TRY])
+                s_val = int(lst_pre[idx_status])
             except: # noqa
                 pass
+
+        return s_val
+
+    def get_pre_num_try(self, s_profile=None):
+        num_try_pre = 0
+
+        s_val = self.get_status_by_idx(IDX_NUM_TRY, s_profile)
+
+        try:
+            num_try_pre = int(s_val)
+        except: # noqa
+            pass
 
         return num_try_pre
 
     def update_num_try(self, s_profile=None):
-        num_try_pre = self.get_pre_num_try(s_profile)
-        num_try_cur = num_try_pre + 1
+        date_now = format_ts(time.time(), style=1, tz_offset=TZ_OFFSET)
+        s_update = self.get_status_by_idx(-1, s_profile)
+        if len(s_update) > 10:
+            date_update = s_update[:10]
+        else:
+            date_update = ''
+        if date_now != date_update:
+            num_try_cur = 1
+        else:
+            num_try_pre = self.get_pre_num_try(s_profile)
+            num_try_cur = num_try_pre + 1
 
         self.update_status(IDX_NUM_TRY, str(num_try_cur))
 
@@ -1099,7 +1121,8 @@ class SaharaTask():
                             b_tx_exist = self.is_tx_exist()
                             self.click_gobibear()
                             ele_blk = self.page.ele(s_xpath, timeout=2)
-                            ele_btn = ele_blk.ele(btn_path, timeout=2)
+                            if not isinstance(ele_blk, NoneElement):
+                                ele_btn = ele_blk.ele(btn_path, timeout=2)
 
                         self.logit('gobi_bear', f'b_tx_exist={b_tx_exist}')
 
@@ -1233,17 +1256,19 @@ def main(args):
 
     def is_complete(lst_status):
         b_ret = True
+        date_now = format_ts(time.time(), style=1, tz_offset=TZ_OFFSET)
+
         if lst_status:
             for idx_status in [IDX_VISIT1, IDX_VISIT2, IDX_TX]:
                 claimed_date = lst_status[idx_status]
-                date_now = format_ts(time.time(), style=1, tz_offset=TZ_OFFSET) # noqa
                 if date_now != claimed_date:
                     b_ret = b_ret and False
         else:
             b_ret = False
 
         num_try_pre = instSaharaTask.get_pre_num_try(s_profile)
-        if num_try_pre == NUM_MAX_TRY_PER_DAY:
+        date_update = lst_status[-1][:10]
+        if (date_update == date_now) and (num_try_pre == NUM_MAX_TRY_PER_DAY):
             b_ret = True
 
         return b_ret
