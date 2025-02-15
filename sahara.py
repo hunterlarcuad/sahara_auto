@@ -1056,6 +1056,15 @@ class SaharaTask():
         else:
             return False
 
+    def get_amount(self):
+        btn_path = '@@tag()=div@@class=amount'
+        ele_btn = self.page.ele(btn_path, timeout=2)
+        if not isinstance(ele_btn, NoneElement):
+            s_info = ele_btn.text
+            self.logit(None, f'Shard amount: {s_info}')
+            return s_info
+        return '-1'
+
     def claim_by_tx(self, b_tx_exist):
         retn = DEF_FAIL
 
@@ -1156,6 +1165,9 @@ class SaharaTask():
 
         self.gobi_bear()
         self.update_num_try()
+
+        amount_shard = self.get_amount()
+        self.update_status(IDX_NUM_SHARD, amount_shard)
 
         self.logit('sahara_run', 'Finished!')
         self.close()
