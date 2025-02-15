@@ -39,6 +39,8 @@ from conf import DEF_HEADER_STATUS
 from conf import DEF_OKX_EXTENSION_PATH
 from conf import EXTENSION_ID_OKX
 from conf import DEF_PWD
+from conf import DEF_SEND_AMOUNT_MIN
+from conf import DEF_SEND_AMOUNT_MAX
 
 from conf import DEF_PATH_DATA_PURSE
 from conf import DEF_HEADER_PURSE
@@ -477,12 +479,12 @@ class SaharaTask():
             ele_info = self.page.ele('Your portal to Web3', timeout=2)
             if not isinstance(ele_info, NoneElement):
                 self.logit('init_okx', 'Input password to unlock ...')
-                s_path = '@@tag()=input@@data-testid=okd-input@@placeholder:Enter'
+                s_path = '@@tag()=input@@data-testid=okd-input@@placeholder:Enter' # noqa
                 ele_input = self.page.ele(s_path, timeout=2) # noqa
                 if not isinstance(ele_input, NoneElement):
                     self.page.actions.move_to(ele_input).click().type(DEF_PWD)
                     if ele_input.value != DEF_PWD:
-                        self.logit('init_okx', '[ERROR] Fail to input passwrod !')
+                        self.logit('init_okx', '[ERROR] Fail to input passwrod !') # noqa
                         self.page.set.window.max()
                         return False
 
@@ -507,7 +509,7 @@ class SaharaTask():
                         ele_btn.click(by_js=True)
                         self.page.wait(1)
                     else:
-                        self.logit('init_okx', '[ERROR] What is this ... [quit]')
+                        self.logit('init_okx', '[ERROR] What is this ... [quit]') # noqa
                         self.page.quit()
 
         self.logit('init_okx', 'login failed [ERROR]')
@@ -642,7 +644,7 @@ class SaharaTask():
                 ele_btn = tab_new.ele('@@tag()=button@@data-testid=okd-button@@text():Confirm', timeout=2) # noqa
                 if not isinstance(ele_btn, NoneElement):
                     ele_btn.click(by_js=True)
-                    self.logit(None, 'OKX Wallet Signature request Confirmed [OK]')
+                    self.logit(None, 'OKX Wallet Signature request Confirmed [OK]') # noqa
                     self.page.wait(2)
 
             # OKX Wallet Add network
@@ -710,7 +712,7 @@ class SaharaTask():
                     ele_btn = tab_new.ele('@@tag()=button@@data-testid=okd-button@@text():Confirm', timeout=2) # noqa
                     if not isinstance(ele_btn, NoneElement):
                         ele_btn.click(by_js=True)
-                        self.logit(None, 'OKX Wallet Signature request Confirmed [OK]')
+                        self.logit(None, 'OKX Wallet Signature request Confirmed [OK]') # noqa
                         self.page.wait(3)
                 else:
                     continue
@@ -953,7 +955,6 @@ class SaharaTask():
 
         return True
 
-
     def gene_tx(self):
         """
         Return:
@@ -1014,15 +1015,17 @@ class SaharaTask():
                             if len(evm_addr) >= 3:
                                 lst_addr.append(evm_addr[2])
                             to_addr = random.choice(lst_addr)
-                            self.page.actions.move_to(ele_input).click().type(to_addr)
+                            self.page.actions.move_to(ele_input).click().type(to_addr) # noqa
                             self.page.wait(2)
 
                         # Amount
                         ele_input = self.page.ele('@@tag()=input@@data-testid=okd-input@@placeholder=0.000000', timeout=2) # noqa
                         if not isinstance(ele_input, NoneElement):
-                            flt_amount = random.uniform(0.0000001, 0.0000009)
+                            # flt_amount = random.uniform(0.0000001, 0.0000009)
+                            flt_amount = random.uniform(DEF_SEND_AMOUNT_MIN, DEF_SEND_AMOUNT_MAX) # noqa
                             str_amount = "{:.7f}".format(flt_amount)
-                            self.page.actions.move_to(ele_input).click().type(str_amount)
+                            self.logit(None, f'Send amount: {str_amount}')
+                            self.page.actions.move_to(ele_input).click().type(str_amount) # noqa
                             self.page.wait(2)
 
                         # Next

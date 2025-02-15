@@ -28,7 +28,11 @@ DEF_NUM_TRY = 5
 # 每个账号每天最大重试次数
 NUM_MAX_TRY_PER_DAY = 5
 
-DEF_PWD = 'xxxxx'
+DEF_PWD = 'xxXACcFX.w7DD*y#@@@@'
+
+# 每次发送的随机金额区间
+DEF_SEND_AMOUNT_MIN = 0.00001
+DEF_SEND_AMOUNT_MAX = 0.001
 
 # 设置时间的时区 (0 for UTC, 8 for Asia/Shanghai)
 TZ_OFFSET = 0
