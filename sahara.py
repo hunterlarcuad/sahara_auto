@@ -1263,11 +1263,12 @@ def main(args):
                 claimed_date = lst_status[idx_status]
                 if date_now != claimed_date:
                     b_ret = b_ret and False
+            date_update = lst_status[-1][:10]
         else:
+            date_update = None
             b_ret = False
 
         num_try_pre = instSaharaTask.get_pre_num_try(s_profile)
-        date_update = lst_status[-1][:10]
         if (date_update == date_now) and (num_try_pre == NUM_MAX_TRY_PER_DAY):
             b_ret = True
 
