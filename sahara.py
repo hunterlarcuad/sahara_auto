@@ -914,10 +914,10 @@ class SaharaTask():
         # Search network name
         ele_input = self.page.ele('@@tag()=input@@data-testid=okd-input', timeout=2) # noqa
         if not isinstance(ele_input, NoneElement):
-            self.logit('is_tx_exist', 'Change network to SaharaAI Testnet ...') # noqa
+            self.logit('is_tx_exist', 'Change network to Sahara Testnet ...') # noqa
             self.page.actions.move_to(ele_input).click().type('sahara')
             self.page.wait(3)
-            ele_btn = self.page.ele('@@tag()=div@@class:_title@@text()=SaharaAI Testnet', timeout=2) # noqa
+            ele_btn = self.page.ele('@@tag()=div@@class:_title@@text()=Sahara Testnet', timeout=2) # noqa
             if not isinstance(ele_btn, NoneElement):
                 ele_btn.click(by_js=True)
                 self.page.wait(3)
@@ -1001,7 +1001,7 @@ class SaharaTask():
         if not isinstance(ele_input, NoneElement):
             self.page.actions.move_to(ele_input).click().type('sahara')
             self.page.wait(3)
-            ele_btn = self.page.ele('@@tag()=div@@class:_title@@text()=SaharaAI Testnet', timeout=2) # noqa
+            ele_btn = self.page.ele('@@tag()=div@@class:_title@@text()=Sahara Testnet', timeout=2) # noqa
             if not isinstance(ele_btn, NoneElement):
                 ele_btn.click(by_js=True)
                 self.page.wait(3)
