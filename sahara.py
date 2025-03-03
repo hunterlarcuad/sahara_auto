@@ -319,6 +319,7 @@ class SaharaTask():
             if not isinstance(ele_btn, NoneElement):
                 ele_btn.click(by_js=True)
                 self.logit('okx_set_pwd', 'Password Confirmed [OK]')
+                self.page.wait(10)
                 return True
         return False
 
@@ -1142,7 +1143,13 @@ class SaharaTask():
                     else:
                         if not b_tx_exist:
                             b_tx_exist = self.is_tx_exist()
-                            self.click_gobibear()
+                            for i in range(5):
+                                if self.click_gobibear():
+                                    self.logit(None, f'click_gobibear success. i={i}')
+                                    break
+                                else:
+                                    self.logit(None, f'click_gobibear failed. i={i}')
+
                             ele_blk = self.page.ele(s_xpath, timeout=2)
                             if not isinstance(ele_blk, NoneElement):
                                 ele_btn = ele_blk.ele(btn_path, timeout=2)
