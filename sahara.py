@@ -707,9 +707,22 @@ class SaharaTask():
 
         return False
 
+    def okx_cancel(self):
+        # OKX Wallet Cancel Uncomplete request
+        if len(self.page.tab_ids) == 2:
+            tab_id = self.page.latest_tab
+            tab_new = self.page.get_tab(tab_id)
+            ele_btn = tab_new.ele('@@tag()=button@@data-testid=okd-button@@text():Cancel', timeout=2) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                ele_btn.click(by_js=True)
+                self.page.wait(1)
+                self.logit(None, 'Uncomplete request. Cancel')
+
     def galxe_login(self):
         """
         """
+        self.okx_cancel()
+
         for i in range(1, DEF_NUM_TRY+1):
             self.logit('galxe_login', f'try_i={i}/{DEF_NUM_TRY}')
 
