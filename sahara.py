@@ -61,13 +61,14 @@ DEF_SUCCESS = 0
 DEF_FAIL = 1
 
 # output
-FIELD_NUM = 7
 IDX_VISIT1 = 1
 IDX_VISIT2 = 2
 IDX_TX = 3
 IDX_NUM_TRY = 4
 IDX_NUM_SHARD = 5
-IDX_UPDATE = 6
+IDX_BALANCE = 6
+IDX_UPDATE = 7
+FIELD_NUM = IDX_UPDATE + 1
 
 
 class SaharaTask():
@@ -543,13 +544,9 @@ class SaharaTask():
         def init_status():
             self.dic_status[self.args.s_profile] = [
                 self.args.s_profile,
-                '',
-                '',
-                '',
-                '',
-                '',
-                '',
             ]
+            for i in range(1, FIELD_NUM):
+                self.dic_status[self.args.s_profile].append('')
 
         if self.args.s_profile not in self.dic_status:
             init_status()
@@ -904,7 +901,8 @@ class SaharaTask():
 
     def get_utc_date(self, s_text):
         # 提取日期和时间部分
-        date_time_str = s_text.split('\n')[1].strip()
+        # date_time_str = s_text.split('\n')[1].strip()
+        date_time_str = s_text
         # 定义日期时间格式
         date_time_format = "%m/%d/%Y, %H:%M:%S"
         # 将字符串转换为datetime对象
@@ -930,7 +928,7 @@ class SaharaTask():
 
         return date_tx
 
-    def is_tx_exist(self):
+    def is_tx_exist_v1(self):
         n_max_try = 3
         for i in range(1, n_max_try+1):
             self.logit('is_tx_exist', f'try_i={i}/{n_max_try}')
@@ -964,6 +962,13 @@ class SaharaTask():
                         if not isinstance(ele_btn, NoneElement):
                             ele_btn.click(by_js=True)
                             self.page.wait(2)
+
+                            # No records found for the selected period
+                            ele_info = self.page.ele('@@tag()=div@@class=okui-empty-description@@text():No records', timeout=2) # noqa
+                            if not isinstance(ele_info, NoneElement):
+                                s_info = ele_info.text
+                                self.logit(None, f'[History] {s_info}')
+                                return False
 
                             # Completed
                             ele_btns = self.page.eles('.tx-history-list-row', timeout=2) # noqa
@@ -1013,6 +1018,249 @@ class SaharaTask():
 
         return True
 
+    def is_tx_exist_v2(self):
+        n_max_try = 3
+        for i in range(1, n_max_try+1):
+            self.logit('is_tx_exist', f'try_i={i}/{n_max_try}')
+
+            s_url = f'chrome-extension://{EXTENSION_ID_OKX}/home.html'
+            self.page.get(s_url)
+            # self.page.wait.load_start()
+            self.page.wait(3)
+
+            ele_btn = self.page.ele('@@tag()=div@@class=_container_1eikt_1', timeout=2) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                ele_btn.click(by_js=True)
+                self.page.wait(1)
+
+            # Search network name
+            ele_input = self.page.ele('@@tag()=input@@data-testid=okd-input', timeout=2) # noqa
+            if not isinstance(ele_input, NoneElement):
+                self.logit('is_tx_exist', 'Change network to Sahara Testnet ...') # noqa
+                self.page.actions.move_to(ele_input).click().type('sahara')
+                self.page.wait(3)
+                ele_btn = self.page.ele('@@tag()=div@@class:_title@@text()=Sahara Testnet', timeout=2) # noqa
+                if not isinstance(ele_btn, NoneElement):
+                    ele_btn.click(by_js=True)
+                    self.page.wait(3)
+
+                    # History
+                    ele_blk = self.page.ele(f'@@tag()=div@@class:_iconWrapper_@@text()=History', timeout=2) # noqa
+                    if not isinstance(ele_blk, NoneElement):
+                        self.logit(None, 'Click History ...') # noqa
+                        ele_btn = ele_blk.ele('@@tag()=div@@class:_wallet', timeout=2) # noqa
+                        if not isinstance(ele_btn, NoneElement):
+                            ele_btn.click(by_js=True)
+                            self.page.wait(2)
+
+                            # No records found for the selected period
+                            ele_info = self.page.ele('@@tag()=div@@class=okui-empty-description@@text():No records', timeout=2) # noqa
+                            if not isinstance(ele_info, NoneElement):
+                                s_info = ele_info.text
+                                self.logit(None, f'[History] {s_info}')
+                                return False
+
+                            # Completed
+                            ele_btns = self.page.eles('.tx-history-list-row', timeout=2) # noqa
+                            self.logit(None, f'Completed tx: {len(ele_btns)}') # noqa
+                            if len(ele_btns) > 0:
+                                ele_btn = ele_btns[0]
+                                ele_btn.click(by_js=True)
+                                self.page.wait(2)
+
+                                # tx time
+                                ele_info = self.page.ele('@@tag()=div@@class:tx-detail-item__label@@text():Time', timeout=2) # noqa
+                                if not isinstance(ele_info, NoneElement):
+                                    s_info = ele_info.next().text
+                                    date_tx = self.get_utc_date(s_info)
+                                    date_now = format_ts(time.time(), style=1, tz_offset=TZ_OFFSET) # noqa
+
+                                    s_info = s_info.replace('\n', ' ')
+                                    self.logit(None, f'latest tx: {s_info}') # noqa
+                                    if date_tx == date_now:
+                                        self.logit(None, 'Today\'s tx is exist') # noqa
+                                        # return True
+                                    else:
+                                        self.logit(None, f'tx is outdated, return False') # noqa
+                                        return False
+
+                                # tx status
+                                ele_info = self.page.ele('@@tag()=div@@class:tx-detail-status', timeout=2) # noqa
+                                if not isinstance(ele_info, NoneElement):
+                                    s_info = ele_info.text
+                                    self.logit(None, f'tx status: {s_info}')
+                                    if 'Completed' == s_info:
+                                        self.logit(None, 'is_tx_exist=True') # noqa
+                                        return True
+                                    else:
+                                        n_sleep = 10
+                                        self.logit(None, f'[WARNING] tx is not completed, wait {n_sleep} seconds') # noqa
+                                        self.page.wait(n_sleep)
+                                        # return True
+                                        continue
+            else:
+                # Cancel Uncomplete request
+                ele_btn = self.page.ele('@@tag()=button@@data-testid=okd-button@@text():Cancel', timeout=2) # noqa
+                if not isinstance(ele_btn, NoneElement):
+                    ele_btn.click(by_js=True)
+                    self.page.wait(1)
+                    self.logit(None, 'Uncomplete request. Cancel')
+                    continue
+
+        return True
+
+    def get_balance_v1(self, crypto='SAHARA'):
+        """
+        get balance
+        Custom
+            SaharaAI Testnet
+        """
+        flt_balance = 0.0
+        ele_info = self.page.ele(f'@@tag()=div@@class:balance@@text():{crypto}', timeout=2) # noqa
+        if not isinstance(ele_info, NoneElement):
+            s_info = ele_info.text
+            self.logit(None, f'{crypto} balance: {s_info}')
+            flt_balance = float(s_info.split(' ')[0])
+
+        return flt_balance
+
+    def get_balance_v2(self, crypto='SAHARA'):
+        """
+        get balance
+        Popular
+            Sahara Testnet
+        """
+        flt_balance = 0.0
+        ele_blk = self.page.ele(f'@@tag()=div@@class:_wallet-list__item@@text():{crypto}', timeout=2) # noqa
+        if not isinstance(ele_blk, NoneElement):
+            ele_info = ele_blk.ele('@@tag()=div@@class:_typography-text@@style:font-weight: 500; line-height: 20px; width: 100%;', timeout=2) # noqa
+            if not isinstance(ele_info, NoneElement):
+                s_info = ele_info.text
+                self.logit(None, f'{crypto} balance: {s_info}')
+                flt_balance = float(s_info)
+
+        return flt_balance
+
+    def send_v1(self):
+        """
+        Send
+        Old version
+        """
+        ele_blk = self.page.ele(f'@@tag()=div@@class:_iconWrapper_@@text()=Send', timeout=2) # noqa
+        if not isinstance(ele_blk, NoneElement):
+            ele_btn = ele_blk.ele('@@tag()=div@@class:_wallet', timeout=2) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                ele_btn.click(by_js=True)
+                self.page.wait(2)
+
+                # Enter wallet address or domain name
+                ele_input = self.page.ele('@@tag()=textarea@@data-testid=okd-input@@placeholder:Enter', timeout=2) # noqa
+                if not isinstance(ele_input, NoneElement):
+                    lst_addr = []
+                    # 据说是官方领水地址
+                    # lst_addr.append('0x126c08a58cC12494Eb4508c73C703162722256b1')
+                    evm_addr = self.dic_purse[self.args.s_profile]
+                    if len(evm_addr) >= 3:
+                        lst_addr.append(evm_addr[2])
+                    to_addr = random.choice(lst_addr)
+                    self.page.actions.move_to(ele_input).click().type(to_addr) # noqa
+                    self.page.wait(2)
+
+                # Amount
+                ele_input = self.page.ele('@@tag()=input@@data-testid=okd-input@@placeholder=0.000000', timeout=2) # noqa
+                if not isinstance(ele_input, NoneElement):
+                    # flt_amount = random.uniform(0.0000001, 0.0000009)
+                    flt_amount = random.uniform(DEF_SEND_AMOUNT_MIN, DEF_SEND_AMOUNT_MAX) # noqa
+                    str_amount = "{:.7f}".format(flt_amount)
+                    self.logit(None, f'Send amount: {str_amount}')
+                    self.page.actions.move_to(ele_input).click().type(str_amount) # noqa
+                    self.page.wait(2)
+
+                # Next
+                ele_btn = self.page.ele('@@tag()=button@@data-testid=okd-button', timeout=2) # noqa
+                if not isinstance(ele_btn, NoneElement):
+                    ele_btn.click(by_js=True)
+                    self.page.wait(2)
+                    self.logit(None, '[transaction] Click Next [OK]')
+
+                # Confirm
+                ele_btn = self.page.ele('@@tag()=button@@data-testid=okd-button@@text():Confirm', timeout=2) # noqa
+                if not isinstance(ele_btn, NoneElement):
+                    ele_btn.click(by_js=True)
+                    # self.page.wait(6)
+                    self.wait_cofirm()
+                    self.logit(None, 'Confirm transaction [OK]')
+                    return DEF_SUCCESS
+
+        return DEF_FAIL
+
+    def send_v2(self):
+        """
+        Send
+        New version
+        2025.03.10
+        """
+        ele_blk = self.page.ele(f'@@tag()=div@@class:_iconWrapper_@@text()=Send', timeout=2) # noqa
+        if not isinstance(ele_blk, NoneElement):
+            ele_btn = ele_blk.ele('@@tag()=div@@class:_wallet', timeout=2) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                ele_btn.click(by_js=True)
+                self.page.wait(2)
+
+                ele_btn = self.page.ele(f'@@tag()=div@@class:_wallet-list__item@@text():SAHARA', timeout=2) # noqa
+                if not isinstance(ele_btn, NoneElement):
+                    ele_btn.click(by_js=True)
+                    self.page.wait(2)
+
+                # Enter wallet address or domain name
+                ele_input = self.page.ele('@@tag()=textarea@@data-testid=okd-input@@placeholder:Enter', timeout=2) # noqa
+                if not isinstance(ele_input, NoneElement):
+                    lst_addr = []
+                    # 据说是官方领水地址
+                    # lst_addr.append('0x126c08a58cC12494Eb4508c73C703162722256b1')
+                    evm_addr = self.dic_purse[self.args.s_profile]
+                    if len(evm_addr) >= 3:
+                        lst_addr.append(evm_addr[2])
+                    to_addr = random.choice(lst_addr)
+                    self.page.actions.move_to(ele_input).click().type(to_addr) # noqa
+                    self.page.wait(2)
+
+                # Next
+                ele_btn = self.page.ele('@@tag()=button@@data-testid=okd-button', timeout=2) # noqa
+                if not isinstance(ele_btn, NoneElement):
+                    ele_btn.click(by_js=True)
+                    self.page.wait(2)
+                    self.logit(None, '[transaction] Click Next [OK]')
+
+                # Amount
+                ele_input = self.page.ele('@@tag()=input@@data-testid=okd-input@@value=0', timeout=2) # noqa
+                if not isinstance(ele_input, NoneElement):
+                    # flt_amount = random.uniform(0.0000001, 0.0000009)
+                    flt_amount = random.uniform(DEF_SEND_AMOUNT_MIN, DEF_SEND_AMOUNT_MAX) # noqa
+                    str_amount = "{:.7f}".format(flt_amount)
+                    self.logit(None, f'Send amount: {str_amount}')
+                    self.page.actions.move_to(ele_input).click().type(str_amount) # noqa
+                    self.page.wait(2)
+
+                # Confirm amount
+                ele_btn = self.page.ele('@@tag()=button@@data-testid=okd-button@@text():Confirm', timeout=2) # noqa
+                if not isinstance(ele_btn, NoneElement):
+                    ele_btn.click(by_js=True)
+                    # self.page.wait(6)
+                    self.wait_cofirm()
+                    self.logit(None, 'Confirm amount [OK]')
+
+                # Confirm transaction
+                ele_btn = self.page.ele('@@tag()=button@@data-testid=okd-button@@text():Confirm', timeout=2) # noqa
+                if not isinstance(ele_btn, NoneElement):
+                    ele_btn.click(by_js=True)
+                    # self.page.wait(6)
+                    self.wait_cofirm()
+                    self.logit(None, 'Confirm transaction [OK]')
+                    return DEF_SUCCESS
+
+        return DEF_FAIL
+
     def gene_tx(self):
         """
         Return:
@@ -1043,64 +1291,22 @@ class SaharaTask():
                 self.page.wait(3)
 
                 # get balance
-                ele_info = self.page.ele('@@tag()=div@@class:balance@@text():SAHARA', timeout=2) # noqa
-                if not isinstance(ele_info, NoneElement):
-                    s_info = ele_info.text
-                    self.logit(None, f'SAHARA balance: {s_info}')
-                    flt_balance = float(s_info.split(' ')[0])
-                else:
-                    flt_balance = 0.0
+                flt_balance = self.get_balance_v2()
+                if flt_balance < 0.000001:
+                    flt_balance = self.get_balance_v1()
+                self.update_status(IDX_BALANCE, flt_balance)
 
                 if flt_balance < 0.02:
                     self.logit(None, f'❌ SAHARA is insufficient [{flt_balance}] [ERROR]') # noqa
                     return DEF_INSUFFICIENT
 
-                # Send
-                ele_blk = self.page.ele(f'@@tag()=div@@class:_iconWrapper_@@text()=Send', timeout=2) # noqa
-                if not isinstance(ele_blk, NoneElement):
-                    ele_btn = ele_blk.ele('@@tag()=div@@class:_wallet', timeout=2) # noqa
-                    if not isinstance(ele_btn, NoneElement):
-                        ele_btn.click(by_js=True)
-                        self.page.wait(2)
+                ret_send = self.send_v2()
+                if not ret_send:
+                    ret_send = self.send_v1()
 
-                        # Enter wallet address or domain name
-                        ele_input = self.page.ele('@@tag()=textarea@@data-testid=okd-input@@placeholder:Enter', timeout=2) # noqa
-                        if not isinstance(ele_input, NoneElement):
-                            lst_addr = []
-                            # 据说是官方领水地址
-                            # lst_addr.append('0x126c08a58cC12494Eb4508c73C703162722256b1')
-                            evm_addr = self.dic_purse[self.args.s_profile]
-                            if len(evm_addr) >= 3:
-                                lst_addr.append(evm_addr[2])
-                            to_addr = random.choice(lst_addr)
-                            self.page.actions.move_to(ele_input).click().type(to_addr) # noqa
-                            self.page.wait(2)
+                if ret_send == DEF_SUCCESS:
+                    return DEF_SUCCESS
 
-                        # Amount
-                        ele_input = self.page.ele('@@tag()=input@@data-testid=okd-input@@placeholder=0.000000', timeout=2) # noqa
-                        if not isinstance(ele_input, NoneElement):
-                            # flt_amount = random.uniform(0.0000001, 0.0000009)
-                            flt_amount = random.uniform(DEF_SEND_AMOUNT_MIN, DEF_SEND_AMOUNT_MAX) # noqa
-                            str_amount = "{:.7f}".format(flt_amount)
-                            self.logit(None, f'Send amount: {str_amount}')
-                            self.page.actions.move_to(ele_input).click().type(str_amount) # noqa
-                            self.page.wait(2)
-
-                        # Next
-                        ele_btn = self.page.ele('@@tag()=button@@data-testid=okd-button', timeout=2) # noqa
-                        if not isinstance(ele_btn, NoneElement):
-                            ele_btn.click(by_js=True)
-                            self.page.wait(2)
-                            self.logit(None, '[transaction] Click Next [OK]')
-
-                        # Confirm
-                        ele_btn = self.page.ele('@@tag()=button@@data-testid=okd-button@@text():Confirm', timeout=2) # noqa
-                        if not isinstance(ele_btn, NoneElement):
-                            ele_btn.click(by_js=True)
-                            # self.page.wait(6)
-                            self.wait_cofirm()
-                            self.logit(None, 'Confirm transaction [OK]')
-                            return DEF_SUCCESS
         return DEF_FAIL
 
     def click_gobibear(self):
@@ -1155,13 +1361,13 @@ class SaharaTask():
                         retn = DEF_SUCCESS
                     else:
                         if not b_tx_exist:
-                            b_tx_exist = self.is_tx_exist()
+                            b_tx_exist = self.is_tx_exist_v2()
                             for i in range(5):
                                 if self.click_gobibear():
-                                    self.logit(None, f'click_gobibear success. i={i}')
+                                    self.logit(None, f'click_gobibear success. i={i}') # noqa
                                     break
                                 else:
-                                    self.logit(None, f'click_gobibear failed. i={i}')
+                                    self.logit(None, f'click_gobibear failed. i={i}') # noqa
 
                             ele_blk = self.page.ele(s_xpath, timeout=2)
                             if not isinstance(ele_blk, NoneElement):

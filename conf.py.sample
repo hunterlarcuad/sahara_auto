@@ -50,11 +50,11 @@ DEF_DING_TOKEN = ''  # noqa
 
 # 账号列表
 DEF_PATH_DATA_PURSE = 'datas/purse'
-DEF_HEADER_PURSE = 'account,purse'
+DEF_HEADER_PURSE = 'account,purse,evm_address'
 
 # 记录账号状态信息
 DEF_PATH_DATA_STATUS = 'datas/status'
-DEF_HEADER_STATUS = 'account,update_time'
+DEF_HEADER_STATUS = 'account,visit1,visit2,send_tx,try,shards,sahara_balance,update_time'
 
 ############################################################
 # 配置日志
