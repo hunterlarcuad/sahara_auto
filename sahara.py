@@ -43,6 +43,7 @@ from conf import DEF_HEADER_PURSE
 from conf import TZ_OFFSET
 from conf import DEL_PROFILE_DIR
 
+from conf import FILENAME_LOG
 from conf import logger
 
 """
@@ -464,7 +465,7 @@ class SaharaTask():
                         tab.wait(1)
                     else:
                         self.logit('init_okx', '[ERROR] What is this ... [quit]') # noqa
-                        tab.quit()
+                        self.browser.quit()
 
         self.logit('init_okx', 'login failed [ERROR]')
         return False
@@ -822,6 +823,16 @@ class SaharaTask():
 
             return b_ret
 
+    def get_claim_btn(self, ele_blk):
+        if not isinstance(ele_blk, NoneElement):
+            btn_path = '@@tag()=div@@class=task-button-plus'
+            ele_btn = ele_blk.ele(btn_path, timeout=2)
+            if isinstance(ele_btn, NoneElement):
+                btn_path = '@@tag()=div@@class=task-buttons'
+                ele_btn = ele_blk.ele(btn_path, timeout=2)
+            return ele_btn
+        return NoneElement
+
     def gobibear_claim(self, s_task, idx_status):
         """
         s_task
@@ -830,11 +841,10 @@ class SaharaTask():
         """
         tab = self.browser.latest_tab
         s_path_blk = f'@@tag()=div@@class=task-item@@text():{s_task}'
-        # s_path_btn = '@@tag()=div@@class=task-buttons'
-        s_path_btn = '@@tag()=div@@class=task-button-plus'
         ele_blk = tab.ele(s_path_blk, timeout=2)
+
         if not isinstance(ele_blk, NoneElement):
-            ele_btn = ele_blk.ele(s_path_btn, timeout=2)
+            ele_btn = self.get_claim_btn(ele_blk)
             if not isinstance(ele_btn, NoneElement):
                 s_info = ele_btn.text
                 self.logit('gobibear_claim', f'Status: {s_info} [{s_task}]') # noqa
@@ -852,8 +862,9 @@ class SaharaTask():
                 else:
                     if self.galxe_task():
                         self.click_gobibear()
+                        tab = self.browser.latest_tab
                         ele_blk = tab.ele(s_path_blk, timeout=2)
-                        ele_btn = ele_blk.ele(s_path_btn, timeout=2)
+                        ele_btn = self.get_claim_btn(ele_blk)
                         ele_btn.click()
 
         return False
@@ -1313,9 +1324,8 @@ class SaharaTask():
             s_xpath = f'@@tag()=div@@class=task-item@@text():{s_task}'
             ele_blk = tab.ele(s_xpath, timeout=2)
             if not isinstance(ele_blk, NoneElement):
-                # btn_path = '@@tag()=div@@class=task-buttons'
-                btn_path = '@@tag()=div@@class=task-button-plus'
-                ele_btn = ele_blk.ele(btn_path, timeout=2)
+                ele_btn = self.get_claim_btn(ele_blk)
+
                 if not isinstance(ele_btn, NoneElement):
                     s_info = ele_btn.text
                     self.logit('gobibear_claim', f'Status: {s_info} [{s_task}]') # noqa
@@ -1341,7 +1351,7 @@ class SaharaTask():
 
                             ele_blk = tab.ele(s_xpath, timeout=2)
                             if not isinstance(ele_blk, NoneElement):
-                                ele_btn = ele_blk.ele(btn_path, timeout=2)
+                                ele_btn = self.get_claim_btn(ele_blk)
 
                         self.logit('gobi_bear', f'b_tx_exist={b_tx_exist}')
 
@@ -1446,6 +1456,20 @@ def send_msg(instSaharaTask, lst_success):
             )
         }
         ding_msg(d_cont, DEF_DING_TOKEN, msgtype="markdown")
+
+
+def show_msg():
+    current_directory = os.getcwd()
+    FILE_LOG = f'{current_directory}/{FILENAME_LOG}'
+    FILE_STATUS = f'{current_directory}/{DEF_PATH_DATA_STATUS}/status.csv'
+
+    print('########################################')
+    print('The program is running')
+    print('Location of the running result file:')
+    print(f'{FILE_STATUS}')
+    print('The running process is in the log file:')
+    print(f'{FILE_LOG}')
+    print('########################################')
 
 
 def main(args):
@@ -1615,6 +1639,9 @@ if __name__ == '__main__':
         '--profile', required=False, default='',
         help='按指定的 profile 执行，多个用英文逗号分隔'
     )
+
+    show_msg()
+
     args = parser.parse_args()
     if args.loop_interval <= 0:
         main(args)
