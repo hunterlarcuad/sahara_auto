@@ -1041,7 +1041,6 @@ class SaharaTask():
                                 tab.wait(2)
 
                                 # Failed
-                                pdb.set_trace()
                                 ele_info = tab.ele('@@tag()=div@@class=okui-dialog-title-block title-center', timeout=2) # noqa
                                 if not isinstance(ele_info, NoneElement):
                                     s_info = ele_info.text
