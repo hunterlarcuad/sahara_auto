@@ -1040,6 +1040,15 @@ class SaharaTask():
                                 ele_btn.click(by_js=True)
                                 tab.wait(2)
 
+                                # Failed
+                                pdb.set_trace()
+                                ele_info = tab.ele('@@tag()=div@@class=okui-dialog-title-block title-center', timeout=2) # noqa
+                                if not isinstance(ele_info, NoneElement):
+                                    s_info = ele_info.text
+                                    self.logit(None, f'[tx status] {s_info}')
+                                    if 'Failed' == s_info:
+                                        return False
+
                                 # tx time
                                 ele_info = tab.ele('@@tag()=div@@class:tx-detail-item__label@@text():Time', timeout=2) # noqa
                                 if not isinstance(ele_info, NoneElement):
