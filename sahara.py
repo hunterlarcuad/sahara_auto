@@ -661,13 +661,18 @@ class SaharaTask():
     def okx_cancel(self):
         # OKX Wallet Cancel Uncomplete request
         tab = self.browser.latest_tab
-        if len(self.browser.tab_ids) == 2:
-            tab_new = self.browser.latest_tab
-            ele_btn = tab_new.ele('@@tag()=button@@data-testid=okd-button@@text():Cancel', timeout=2) # noqa
+        i = 0
+        while True:
+            i += 1
+            self.logit('okx_cancel', f'Cancel Uncomplete request i={i}')
+            ele_btn = tab.ele('@@tag()=button@@data-testid=okd-button@@text():Cancel', timeout=2) # noqa
             if not isinstance(ele_btn, NoneElement):
                 ele_btn.click(by_js=True)
                 tab.wait(1)
                 self.logit(None, 'Uncomplete request. Cancel')
+            else:
+                break
+
 
     def galxe_login(self):
         """
@@ -980,12 +985,7 @@ class SaharaTask():
                                     continue
             else:
                 # Cancel Uncomplete request
-                ele_btn = tab.ele('@@tag()=button@@data-testid=okd-button@@text():Cancel', timeout=2) # noqa
-                if not isinstance(ele_btn, NoneElement):
-                    ele_btn.click(by_js=True)
-                    tab.wait(1)
-                    self.logit(None, 'Uncomplete request. Cancel')
-                    continue
+                self.okx_cancel()
 
         return True
 
@@ -1080,12 +1080,7 @@ class SaharaTask():
                                         continue
             else:
                 # Cancel Uncomplete request
-                ele_btn = tab.ele('@@tag()=button@@data-testid=okd-button@@text():Cancel', timeout=2) # noqa
-                if not isinstance(ele_btn, NoneElement):
-                    ele_btn.click(by_js=True)
-                    tab.wait(1)
-                    self.logit(None, 'Uncomplete request. Cancel')
-                    continue
+                self.okx_cancel()
 
         return True
 
