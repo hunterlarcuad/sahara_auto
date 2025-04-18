@@ -274,6 +274,7 @@ class SaharaTask():
             ele_btn.click(by_js=True)
             self.logit('okx_bulk_import_private_key', 'Click ...')
 
+            tab = self.browser.latest_tab
             ele_btn = tab.ele('@@tag()=i@@id=okdDialogCloseBtn', timeout=2) # noqa
             if not isinstance(ele_btn, NoneElement):
                 self.logit(None, 'Close pwd input box ...')
@@ -375,6 +376,7 @@ class SaharaTask():
                 max_wait_sec = 10
                 i = 1
                 while i < max_wait_sec:
+                    tab = self.browser.latest_tab
                     ele_btn = tab.ele('@@tag()=button@@data-testid=okd-button@@text():Confirm', timeout=2) # noqa
                     self.logit('init_okx', f'To Confirm ... {i}/{max_wait_sec}') # noqa
                     if not isinstance(ele_btn, NoneElement):
