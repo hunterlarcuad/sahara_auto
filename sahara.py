@@ -19,6 +19,7 @@ from fun_utils import get_date
 from fun_utils import load_file
 from fun_utils import save2file
 from fun_utils import format_ts
+from fun_encode import decrypt
 
 from conf import DEF_LOCAL_PORT
 from conf import DEF_INCOGNITO
@@ -36,6 +37,7 @@ from conf import EXTENSION_ID_OKX
 from conf import DEF_PWD
 from conf import DEF_SEND_AMOUNT_MIN
 from conf import DEF_SEND_AMOUNT_MAX
+from conf import DEF_ENCODE_HANDLE_OKX
 
 from conf import DEF_PATH_DATA_PURSE
 from conf import DEF_HEADER_PURSE
@@ -105,7 +107,7 @@ class SaharaTask():
         self.status_save()
 
     def purse_load(self):
-        self.file_purse = f'{DEF_PATH_DATA_PURSE}/purse.csv'
+        self.file_purse = f'{DEF_PATH_DATA_PURSE}/purse_evm_privatekey_100_encrypt_v1.csv'
         self.dic_purse = load_file(
             file_in=self.file_purse,
             idx_key=0,
@@ -210,17 +212,6 @@ class SaharaTask():
         if s_info:
             s_text += f' {s_info}'
         logger.info(s_text)
-
-    def is_exist(self, s_title, s_find, match_type):
-        b_ret = False
-        if match_type == 'fuzzy':
-            if s_title.find(s_find) >= 0:
-                b_ret = True
-        else:
-            if s_title == s_find:
-                b_ret = True
-
-        return b_ret
 
     def okx_secure_wallet(self):
         # Secure your wallet
@@ -336,7 +327,8 @@ class SaharaTask():
                 ele_btn.click(by_js=True)
                 tab.wait(1)
 
-                s_key = self.dic_purse[self.args.s_profile][1]
+                encode_key = self.dic_purse[self.args.s_profile][1]
+                s_key = decrypt(DEF_ENCODE_HANDLE_OKX, encode_key)
                 if len(s_key.split()) == 1:
                     # Private key
                     self.logit('init_okx', 'Import By Private key')
