@@ -137,14 +137,30 @@ def ding_msg(content, access_token, msgtype="markdown"):
     print(data)
 
     headers = {"Content-Type": "application/json; charset=utf-8"}
-    resp = requests.post(
-        url="{0}?access_token={1}".format(DEF_URL_DINGTALK, access_token),
-        data=data,
-        headers=headers,
-        timeout=3
-    )
 
-    print(resp.content)
+    # 增加重试机制和更长的超时时间
+    max_retries = 3
+    timeout = 10  # 增加超时时间到10秒
+
+    for i in range(max_retries):
+        try:
+            resp = requests.post(
+                url=f"{DEF_URL_DINGTALK}?access_token={access_token}",
+                data=data,
+                headers=headers,
+                timeout=timeout
+            )
+            print(resp.content)
+            return resp
+        except requests.exceptions.Timeout:
+            if i == max_retries - 1:  # 最后一次重试
+                print(f"钉钉消息发送失败: 超时 {max_retries} 次")
+                pass
+            print(f"钉钉消息发送超时, 正在进行第 {i+1} 次重试...")
+            time.sleep(3)  # 重试前等待3秒
+        except Exception as e:
+            print(f"钉钉消息发送失败: {str(e)}")
+            pass
 
 
 def ts_human(n_sec):
