@@ -1389,12 +1389,14 @@ class SaharaTask():
             if isinstance(ele_btn, NoneElement):
                 self.click_gobibear()
 
-            idx_status = IDX_VISIT1
-            if not self.is_task_complete(idx_status):
-                s_task = 'Visit the Sahara AI blog'
-                b_visit1 = self.gobibear_claim(s_task, idx_status)
-            else:
-                b_visit1 = True
+            # idx_status = IDX_VISIT1
+            # if not self.is_task_complete(idx_status):
+            #     s_task = 'Visit the Sahara AI blog'
+            #     b_visit1 = self.gobibear_claim(s_task, idx_status)
+            # else:
+            #     b_visit1 = True
+            # 2025-05-31 该任务被移除
+            b_visit1 = True
 
             idx_status = IDX_VISIT2
             if not self.is_task_complete(idx_status):
@@ -1500,7 +1502,9 @@ def main(args):
         date_now = format_ts(time.time(), style=1, tz_offset=TZ_OFFSET)
 
         if lst_status:
-            for idx_status in [IDX_VISIT1, IDX_VISIT2, IDX_TX]:
+            # lst_idx = [IDX_VISIT1, IDX_VISIT2, IDX_TX]
+            lst_idx = [IDX_VISIT2, IDX_TX]
+            for idx_status in lst_idx:
                 claimed_date = lst_status[idx_status]
                 if date_now != claimed_date:
                     b_ret = b_ret and False
