@@ -187,12 +187,12 @@ class SaharaTask():
         current_directory = os.getcwd()
 
         # 检查目录是否存在
-        if os.path.exists(os.path.join(current_directory, DEF_OKX_EXTENSION_PATH)): # noqa
-            logger.info(f'okx plugin path: {DEF_OKX_EXTENSION_PATH}')
-            co.add_extension(DEF_OKX_EXTENSION_PATH)
-        else:
-            print("okx plugin directory is not exist. Exit!")
-            sys.exit(1)
+        # if os.path.exists(os.path.join(current_directory, DEF_OKX_EXTENSION_PATH)): # noqa
+        #     logger.info(f'okx plugin path: {DEF_OKX_EXTENSION_PATH}')
+        #     co.add_extension(DEF_OKX_EXTENSION_PATH)
+        # else:
+        #     print("okx plugin directory is not exist. Exit!")
+        #     sys.exit(1)
 
         # https://drissionpage.cn/ChromiumPage/browser_opt
         co.headless(DEF_USE_HEADLESS)
@@ -200,6 +200,7 @@ class SaharaTask():
 
         try:
             self.browser = Chromium(co)
+            # input('Manual install addon ...')
         except Exception as e:
             logger.info(f'Error: {e}')
         finally:
@@ -299,6 +300,9 @@ class SaharaTask():
 
             self.browser.close_tabs(tab, others=True)
             self.browser.wait(2)
+            if not tab.html:
+                input('Press Check Addon is installed, Press Enter to continue ...')
+                continue
 
             self.logit('init_okx', f'tabs_count={self.browser.tabs_count}')
 
@@ -610,6 +614,11 @@ class SaharaTask():
                 if not isinstance(ele_btn, NoneElement):
                     ele_btn.click(by_js=True)
                     tab.wait(2)
+
+            ele_btn = tab.ele('@@tag()=div@@class:text-base@@text()=OKX Wallet', timeout=2) # noqa
+            if not isinstance(ele_btn, NoneElement):
+                ele_btn.click()
+                tab.wait(2)
 
             # OKX Wallet Connect
             self.save_screenshot(name='page_wallet_connect.jpg')
